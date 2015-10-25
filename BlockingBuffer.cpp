@@ -4,17 +4,18 @@
 #include <algorithm>    // std::min
 #include <cstring>
 #include <unistd.h>
- #include <sys/types.h>
-       #include <sys/stat.h>
-       #include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <curl/curl.h>
 #include <iostream>
 
 #include "OffsetMgr.h"
 
-#define PARALLELNUM 20
-#define CHUNKSIZE   10*1024*1024
-
+#define PARALLELNUM 5
+//#define CHUNKSIZE   7*1034*125
+//#define CHUNKSIZE   64*1024*1024
+#define CHUNKSIZE   1233497
 
 class BlockingBuffer
 {
@@ -102,8 +103,10 @@ size_t BlockingBuffer::Read(char* buf, size_t len) {
         this->readpos = 0;
         if(this->status == BlockingBuffer::STATUS_READY)
             this->status = BlockingBuffer::STATUS_EMPTY;
-        this->nextpos = this->mgr->NextOffset();
-        pthread_cond_signal(&this->stat_cond);
+        if(!this->EndOfFile()){
+            this->nextpos = this->mgr->NextOffset();
+            pthread_cond_signal(&this->stat_cond);
+        }
     }
     pthread_mutex_unlock(&this->stat_mutex);
     return length_to_read;
@@ -124,7 +127,7 @@ size_t BlockingBuffer::Fill() {
         if(leftlen != 0 ) {
             //readlen = this->fetchdata(offset, this->bufferdata + this->realsize, this->bufcap - this->realsize);
             readlen = this->fetchdata(offset, this->bufferdata + this->realsize, leftlen);
-            std::cout<<"return "<<readlen<<" from libcurl\n";
+            //std::cout<<"return "<<readlen<<" from libcurl\n";
         } else {
             readlen = 0; // EOF
         }
@@ -133,7 +136,7 @@ size_t BlockingBuffer::Fill() {
             std::cout<<"reach end of file"<<std::endl;
             break;
         } else if (readlen == -1) { // Error, network error or sth.
-            // perror
+            // perror, retry
             break;
         } else { // > 0
             offset += readlen;
@@ -189,7 +192,7 @@ WriterCallback(void *contents, size_t size, size_t nmemb, void *userp)
 }
 
 // buffer size should be at lease len
-// read len data from offert
+// read len data from offest
 size_t HTTPBuffer::fetchdata(size_t offset, char* data, size_t len) {
     Bufinfo bi;
     bi.buf = data;
@@ -232,7 +235,7 @@ void* DownloadThreadfunc(void* data) {
     // assert offset > 0
     do {
         filled_size = buffer->Fill();
-        std::cout<<"Fillsize is "<<filled_size<<" "<<data<<std::endl;
+        //std::cout<<"Fillsize is "<<filled_size<<" "<<data<<std::endl;
         if(buffer->EndOfFile() == true)
             break;
         if (filled_size == -1) { // Error
@@ -251,7 +254,7 @@ int main(int argc, char const *argv[])
     //InitOffset(601882624, CHUNKSIZE);
     pthread_t threads[PARALLELNUM];
     BlockingBuffer* buffers[PARALLELNUM];
-    OffsetMgr* o = new OffsetMgr(601882624,CHUNKSIZE);
+    OffsetMgr* o = new OffsetMgr(1016517804,CHUNKSIZE);
     for(int i = 0; i < PARALLELNUM; i++) {
         // Create
         buffers[i] = BlockingBuffer::CreateBuffer(argv[1], o);
@@ -274,15 +277,14 @@ int main(int argc, char const *argv[])
         buf = buffers[i%PARALLELNUM];
         len = buf->Read(data, 4096);
 
-        if(len < 4096) {
-            i++;
-        }
-        totallen += len;
-
         write(fd, data, len);
-        if(len == 0)
-            if(totallen == 601882624)
+        totallen += len;
+        if(len < 4096)
+            i++;
+        if(totallen ==  1016517804) {
+            if(buf->EndOfFile())
                 break;
+        }
     }
     std::cout<<"exiting"<<std::endl;
     free(data);

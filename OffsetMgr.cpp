@@ -1,6 +1,6 @@
 #include "OffsetMgr.h"
 
-
+#include <iostream>
 
 OffsetMgr::OffsetMgr(size_t m, size_t c)
 :maxsize(m)
@@ -28,6 +28,7 @@ Range OffsetMgr::NextOffset() {
         this->curpos += this->chunksize;
     }
     pthread_mutex_unlock(&this->offset_lock);
+    //std::cout<<ret.offset<<std::endl;
     return ret;
 }
 

@@ -11,7 +11,7 @@ $(objects): $(sources)
 	g++ -c $(sources) -g
 
 test: $(app)
-	./$(app) http://127.0.0.1:8080/s3/xaa
+	./$(app) http://127.0.0.1:8080/s3/bigfile
 
 clean:
 	rm $(objects) $(app)
