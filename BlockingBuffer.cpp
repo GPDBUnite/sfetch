@@ -10,23 +10,26 @@
 #include <curl/curl.h>
 #include <iostream>
 
-size_t GetNextOffset();
+#include "OffsetMgr.h"
+
+#define PARALLELNUM 20
+#define CHUNKSIZE   10*1024*1024
+
 
 class BlockingBuffer
 {
 public:
-    static BlockingBuffer* CreateBuffer(const char* url);
-    BlockingBuffer(const char* url, size_t cap);
+    static BlockingBuffer* CreateBuffer(const char* url, OffsetMgr* o);
+    BlockingBuffer(const char* url, size_t cap, OffsetMgr* o);
     virtual ~BlockingBuffer();
     bool Init();
-    int Status(){return this->status;};
+    bool EndOfFile(){return this->eof;};
 
     size_t Read(char* buf, size_t len);
-    size_t Fill(size_t offset, bool init);
+    size_t Fill();
 
     static const int STATUS_EMPTY = 0;
     static const int STATUS_READY = 1;
-    static const int STATUS_EOF = 2;
 
     /* data */
 protected:
@@ -35,21 +38,27 @@ protected:
     virtual size_t fetchdata(size_t offset, char* data, size_t len) = 0;
 private:
     int status;
+    bool eof;
     pthread_mutex_t stat_mutex;
     pthread_cond_t   stat_cond;
     size_t readpos;
     size_t realsize;
     char* bufferdata;
+    OffsetMgr* mgr;
+    Range nextpos;
 };
 
 
-BlockingBuffer::BlockingBuffer(const char* url, size_t cap)
+BlockingBuffer::BlockingBuffer(const char* url, size_t cap, OffsetMgr* o)
 :sourceurl(url)
 ,bufcap(cap)
 ,readpos(0)
 ,realsize(0)
 ,status(BlockingBuffer::STATUS_EMPTY)
+,eof(false)
+,mgr(o)
 {
+    this->nextpos = o->NextOffset();
 }
 
 BlockingBuffer::~BlockingBuffer(){
@@ -93,47 +102,47 @@ size_t BlockingBuffer::Read(char* buf, size_t len) {
         this->readpos = 0;
         if(this->status == BlockingBuffer::STATUS_READY)
             this->status = BlockingBuffer::STATUS_EMPTY;
+        this->nextpos = this->mgr->NextOffset();
         pthread_cond_signal(&this->stat_cond);
     }
     pthread_mutex_unlock(&this->stat_mutex);
     return length_to_read;
 }
 
-size_t BlockingBuffer::Fill(size_t offset, bool init) {
+size_t BlockingBuffer::Fill() {
     // assert offset > 0, offset < this->bufcap
     pthread_mutex_lock(&this->stat_mutex);
     while (this->status == BlockingBuffer::STATUS_READY) {
         pthread_cond_wait(&this->stat_cond, &this->stat_mutex);
     }
-    if(init == false) {
-        offset = GetNextOffset();
-    }
+    size_t offset = this->nextpos.offset;
+    size_t leftlen = this->nextpos.len;
     // assert this->status != BlockingBuffer::STATUS_READY
     int readlen = 0;
     this->realsize = 0;
     while(this->realsize < this->bufcap) {
-        if(offset != (size_t) -1 ) {
-            readlen = this->fetchdata(offset, this->bufferdata + this->realsize, this->bufcap - this->realsize);
+        if(leftlen != 0 ) {
+            //readlen = this->fetchdata(offset, this->bufferdata + this->realsize, this->bufcap - this->realsize);
+            readlen = this->fetchdata(offset, this->bufferdata + this->realsize, leftlen);
             std::cout<<"return "<<readlen<<" from libcurl\n";
         } else {
             readlen = 0; // EOF
         }
         if(readlen == 0) {// EOF!!
-            if(this->realsize == 0) {
-                this->status = BlockingBuffer::STATUS_EOF;
-                std::cout<<"reach end of file"<<std::endl;
-            }
+            this->eof = true;
+            std::cout<<"reach end of file"<<std::endl;
             break;
         } else if (readlen == -1) { // Error, network error or sth.
             // perror
             break;
         } else { // > 0
             offset += readlen;
+            leftlen -= readlen;
             this->realsize += readlen;
             this->status = BlockingBuffer::STATUS_READY;
         }
     }
-    if(this->realsize > 0) {
+    if(this->realsize >= 0) {
         pthread_cond_signal(&this->stat_cond);
     }
 
@@ -144,20 +153,20 @@ size_t BlockingBuffer::Fill(size_t offset, bool init) {
 class HTTPBuffer : public BlockingBuffer
 {
 public:
-    HTTPBuffer(const char* url, size_t cap);
+    HTTPBuffer(const char* url, size_t cap, OffsetMgr* o);
     ~HTTPBuffer(){};
 
 protected:
     virtual size_t fetchdata(size_t offset, char* data, size_t len);
 };
 
-HTTPBuffer::HTTPBuffer(const char* url, size_t cap)
-:BlockingBuffer(url, cap)
+HTTPBuffer::HTTPBuffer(const char* url, size_t cap, OffsetMgr* o)
+:BlockingBuffer(url, cap, o)
 {
 
 }
-BlockingBuffer* BlockingBuffer::CreateBuffer(const char* url) {
-    return url == NULL ? NULL : new HTTPBuffer(url, 64*1024*1024);
+BlockingBuffer* BlockingBuffer::CreateBuffer(const char* url, OffsetMgr* o) {
+    return url == NULL ? NULL : new HTTPBuffer(url, CHUNKSIZE, o);
 }
 struct Bufinfo
 {
@@ -186,11 +195,12 @@ size_t HTTPBuffer::fetchdata(size_t offset, char* data, size_t len) {
     bi.buf = data;
     bi.maxsize = len;
     bi.len = 0;
-
+    if(len == 0)
+        return 0;
     CURL *curl_handle = curl_easy_init();
     CURLcode res;
     char rangebuf[128];
-    curl_easy_setopt(curl_handle, CURLOPT_VERBOSE, 1L);
+    //curl_easy_setopt(curl_handle, CURLOPT_VERBOSE, 1L);
     curl_easy_setopt(curl_handle, CURLOPT_URL, this->sourceurl);
     /* send all data to this function  */
     curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WriterCallback);
@@ -215,69 +225,22 @@ size_t HTTPBuffer::fetchdata(size_t offset, char* data, size_t len) {
     return bi.len;
 }
 
-struct FuncArgs
-{
-    /* data */
-    BlockingBuffer* buffer;
-    size_t offset;
-};
-
-pthread_mutex_t *offset_mutex=NULL;
-static size_t maxlen = 0;
-static size_t curpos = 0;
-static size_t delta = 0;
-void InitOffset(size_t max, size_t chucksize = 64*1024*1024) {
-    if(!offset_mutex){
-        offset_mutex = (pthread_mutex_t *)malloc(sizeof(pthread_mutex_t));
-        pthread_mutex_init(offset_mutex, NULL);
-    }
-    curpos = 0;
-    maxlen = max;
-    delta = chucksize;
-}
-
-size_t GetNextOffset() {
-    // spin lock
-    pthread_mutex_lock(offset_mutex);
-    int ret = -1;
-    if(maxlen == -1) {
-        pthread_mutex_unlock(offset_mutex);
-        return ret;
-    }
-    if((curpos + delta) <= maxlen) {
-        ret = curpos;
-        curpos += delta;
-    } else {
-        ret = curpos;
-        curpos = maxlen;
-        maxlen = -1;
-    }
-    pthread_mutex_unlock(offset_mutex);
-    return ret;
-}
 void* DownloadThreadfunc(void* data) {
-    FuncArgs* args = (FuncArgs*) data;
-    BlockingBuffer* buffer = args->buffer;
-    size_t offset = args->offset;
+
+    BlockingBuffer* buffer = (BlockingBuffer*)data;
     size_t filled_size = 0;
     // assert offset > 0
-    bool init = true;
     do {
-        filled_size = buffer->Fill(offset, init);
-        if(filled_size == 0) { // EOF
-            // make sure EOF
-            std::cout<<"Fill return 0 with stat: "<<buffer->Status()<<std::endl;
-            if(buffer->Status() == BlockingBuffer::STATUS_EOF) {
-                break;
-            } else {
-                // log error, why here!
-            }
-        } else if (filled_size == -1) { // Error
+        filled_size = buffer->Fill();
+        std::cout<<"Fillsize is "<<filled_size<<" "<<data<<std::endl;
+        if(buffer->EndOfFile() == true)
+            break;
+        if (filled_size == -1) { // Error
             // retry?
             continue;
-        } else
-            init = 0;
+        }
     } while(1);
+    std::cout<<"quit\n";
     return NULL;
 }
 
@@ -285,19 +248,16 @@ int main(int argc, char const *argv[])
 {
     /* code */
     //InitRB();
-    InitOffset(1016517804, 64*1024*1024);
-    pthread_t threads[5];
-    BlockingBuffer* buffers[5];
-    struct FuncArgs args[5];
-    for(int i = 0; i < 5; i++) {
+    //InitOffset(601882624, CHUNKSIZE);
+    pthread_t threads[PARALLELNUM];
+    BlockingBuffer* buffers[PARALLELNUM];
+    OffsetMgr* o = new OffsetMgr(601882624,CHUNKSIZE);
+    for(int i = 0; i < PARALLELNUM; i++) {
         // Create
-
-        buffers[i] = args[i].buffer = BlockingBuffer::CreateBuffer(argv[1]);
+        buffers[i] = BlockingBuffer::CreateBuffer(argv[1], o);
         if(!buffers[i]->Init())
             std::cerr<<"init fail"<<std::endl;
-        args[i].offset = GetNextOffset();
-        std::cerr<<args[i].offset<<std::endl;
-        pthread_create(&threads[i], NULL, DownloadThreadfunc, &args[i]);
+        pthread_create(&threads[i], NULL, DownloadThreadfunc, buffers[i]);
     }
 
     int i = 0;
@@ -311,27 +271,28 @@ int main(int argc, char const *argv[])
         perror("create file error");
     }
     while(true) {
-        buf = buffers[i%5];
+        buf = buffers[i%PARALLELNUM];
         len = buf->Read(data, 4096);
 
         if(len < 4096) {
             i++;
         }
         totallen += len;
-        //std::cout<<"read len is "<<totallen<<std::endl;
 
         write(fd, data, len);
-        if(totallen == 1016517804)
-            break;
+        if(len == 0)
+            if(totallen == 601882624)
+                break;
     }
-
+    std::cout<<"exiting"<<std::endl;
     free(data);
-    for(i = 0; i < 5; i++) {
+    for(i = 0; i < PARALLELNUM; i++) {
         pthread_join(threads[i],NULL);
     }
-    for(i = 0; i < 5; i++) {
+    for(i = 0; i < PARALLELNUM; i++) {
         delete buffers[i];
     }
     close(fd);
+    delete o;
     return 0;
 }

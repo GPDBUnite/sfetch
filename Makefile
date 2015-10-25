@@ -1,6 +1,6 @@
-objects = BlockingBuffer.o
+objects = BlockingBuffer.o  OffsetMgr.o
 
-sources = BlockingBuffer.cpp
+sources = BlockingBuffer.cpp OffsetMgr.cpp
 
 app = sfetch
 
@@ -11,7 +11,7 @@ $(objects): $(sources)
 	g++ -c $(sources) -g
 
 test: $(app)
-	./$(app) http://127.0.0.1:8080/s3/bigfile
+	./$(app) http://127.0.0.1:8080/s3/xaa
 
 clean:
 	rm $(objects) $(app)
