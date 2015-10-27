@@ -16,7 +16,7 @@ class OffsetMgr {
 public:
     OffsetMgr(size_t maxsize, size_t chunksize);
     ~OffsetMgr(){pthread_mutex_destroy(&this->offset_lock);};
-    Range NextOffset(); // -1 means EOF
+    Range NextOffset(); // ret.len == 0 means EOF
     void Reset(size_t n);
 private:
     pthread_mutex_t offset_lock;

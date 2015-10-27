@@ -137,6 +137,7 @@ size_t BlockingBuffer::Fill() {
             break;
         } else if (readlen == -1) { // Error, network error or sth.
             // perror, retry
+            // Ensure status is still empty
             break;
         } else { // > 0
             offset += readlen;
