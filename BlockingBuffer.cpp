@@ -3,51 +3,14 @@
 #include <cstdlib>
 #include <algorithm>    // std::min
 #include <cstring>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <curl/curl.h>
-#include <iostream>
 
-#include "OffsetMgr.h"
+#include "BlockingBuffer.h"
+#include "HTTPClient.h"
 
 #define PARALLELNUM 5
 //#define CHUNKSIZE   7*1034*125
 //#define CHUNKSIZE   64*1024*1024
 #define CHUNKSIZE   1233497
-
-class BlockingBuffer
-{
-public:
-    static BlockingBuffer* CreateBuffer(const char* url, OffsetMgr* o);
-    BlockingBuffer(const char* url, size_t cap, OffsetMgr* o);
-    virtual ~BlockingBuffer();
-    bool Init();
-    bool EndOfFile(){return this->eof;};
-
-    size_t Read(char* buf, size_t len);
-    size_t Fill();
-
-    static const int STATUS_EMPTY = 0;
-    static const int STATUS_READY = 1;
-
-    /* data */
-protected:
-    const char* sourceurl;
-    const size_t bufcap;
-    virtual size_t fetchdata(size_t offset, char* data, size_t len) = 0;
-private:
-    int status;
-    bool eof;
-    pthread_mutex_t stat_mutex;
-    pthread_cond_t   stat_cond;
-    size_t readpos;
-    size_t realsize;
-    char* bufferdata;
-    OffsetMgr* mgr;
-    Range nextpos;
-};
 
 
 BlockingBuffer::BlockingBuffer(const char* url, size_t cap, OffsetMgr* o)
@@ -154,148 +117,7 @@ size_t BlockingBuffer::Fill() {
     return (readlen == -1) ? -1 : this->realsize ;
 }
 
-class HTTPBuffer : public BlockingBuffer
-{
-public:
-    HTTPBuffer(const char* url, size_t cap, OffsetMgr* o);
-    ~HTTPBuffer(){};
 
-protected:
-    virtual size_t fetchdata(size_t offset, char* data, size_t len);
-};
-
-HTTPBuffer::HTTPBuffer(const char* url, size_t cap, OffsetMgr* o)
-:BlockingBuffer(url, cap, o)
-{
-
-}
 BlockingBuffer* BlockingBuffer::CreateBuffer(const char* url, OffsetMgr* o) {
-    return url == NULL ? NULL : new HTTPBuffer(url, CHUNKSIZE, o);
-}
-struct Bufinfo
-{
-    /* data */
-    char* buf;
-    int maxsize;
-    int len;
-};
-
-size_t
-WriterCallback(void *contents, size_t size, size_t nmemb, void *userp)
-{
-  size_t realsize = size * nmemb;
-  Bufinfo *p = (Bufinfo*) userp;
-  //std::cout<<"in writer"<<std::endl;
-  // assert p->len + realsize < p->maxsize
-  memcpy(p->buf + p->len, contents, realsize);
-  p->len += realsize;
-  return realsize;
-}
-
-// buffer size should be at lease len
-// read len data from offest
-size_t HTTPBuffer::fetchdata(size_t offset, char* data, size_t len) {
-    Bufinfo bi;
-    bi.buf = data;
-    bi.maxsize = len;
-    bi.len = 0;
-    if(len == 0)
-        return 0;
-    CURL *curl_handle = curl_easy_init();
-    CURLcode res;
-    char rangebuf[128];
-    //curl_easy_setopt(curl_handle, CURLOPT_VERBOSE, 1L);
-    curl_easy_setopt(curl_handle, CURLOPT_URL, this->sourceurl);
-    /* send all data to this function  */
-    curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WriterCallback);
-
-    /* we pass our 'chunk' struct to the callback function */
-    curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void *)&bi);
-
-    sprintf(rangebuf, "%d-%d", offset, offset + len - 1);
-    curl_easy_setopt(curl_handle, CURLOPT_RANGE, rangebuf);
-    curl_easy_setopt(curl_handle, CURLOPT_FORBID_REUSE, 1L);
-    /* get it! */
-    res = curl_easy_perform(curl_handle);
-
-    /* check for errors */
-    if(res != CURLE_OK) {
-        fprintf(stderr, "curl_easy_perform() failed: %s\n",
-        curl_easy_strerror(res));
-    }
-
-    /* cleanup curl stuff */
-    curl_easy_cleanup(curl_handle);
-    return bi.len;
-}
-
-void* DownloadThreadfunc(void* data) {
-
-    BlockingBuffer* buffer = (BlockingBuffer*)data;
-    size_t filled_size = 0;
-    // assert offset > 0
-    do {
-        filled_size = buffer->Fill();
-        //std::cout<<"Fillsize is "<<filled_size<<" "<<data<<std::endl;
-        if(buffer->EndOfFile() == true)
-            break;
-        if (filled_size == -1) { // Error
-            // retry?
-            continue;
-        }
-    } while(1);
-    std::cout<<"quit\n";
-    return NULL;
-}
-
-int main(int argc, char const *argv[])
-{
-    /* code */
-    //InitRB();
-    //InitOffset(601882624, CHUNKSIZE);
-    pthread_t threads[PARALLELNUM];
-    BlockingBuffer* buffers[PARALLELNUM];
-    OffsetMgr* o = new OffsetMgr(1016517804,CHUNKSIZE);
-    for(int i = 0; i < PARALLELNUM; i++) {
-        // Create
-        buffers[i] = BlockingBuffer::CreateBuffer(argv[1], o);
-        if(!buffers[i]->Init())
-            std::cerr<<"init fail"<<std::endl;
-        pthread_create(&threads[i], NULL, DownloadThreadfunc, buffers[i]);
-    }
-
-    int i = 0;
-    BlockingBuffer *buf = NULL;
-    char* data = (char*) malloc(4096);
-    size_t len;
-    size_t totallen = 0;
-
-    int fd = open("/home/jasper/work/s3/fetcher/data.bin", O_RDWR | O_CREAT, S_IRUSR);
-    if(fd == -1) {
-        perror("create file error");
-    }
-    while(true) {
-        buf = buffers[i%PARALLELNUM];
-        len = buf->Read(data, 4096);
-
-        write(fd, data, len);
-        totallen += len;
-        if(len < 4096)
-            i++;
-        if(totallen ==  1016517804) {
-            if(buf->EndOfFile())
-                break;
-        }
-    }
-    std::cout<<"exiting"<<std::endl;
-    free(data);
-    for(i = 0; i < PARALLELNUM; i++) {
-        pthread_join(threads[i],NULL);
-    }
-    for(i = 0; i < PARALLELNUM; i++) {
-        delete buffers[i];
-    }
-    close(fd);
-    delete o;
-    return 0;
+    return url == NULL ? NULL : new HTTPClient(url, CHUNKSIZE, o);
 }

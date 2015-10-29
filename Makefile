@@ -4,8 +4,10 @@ GTEST_DIR=gtest
 CPP=g++
 CFLAGS=
 INCLUDES = -I.
+LDFLAGS=-lpthread -lcrypto -lcurl
 
-sources = BlockingBuffer.cpp OffsetMgr.cpp URLParser.cpp utils.cpp http_parser.cpp
+sources = BlockingBuffer.cpp OffsetMgr.cpp URLParser.cpp utils.cpp http_parser.cpp \
+    main.cpp HTTPClient.cpp
 testcources = utils_test.cpp
 
 
@@ -40,21 +42,21 @@ gtest_main.o : $(GTEST_SRCS_)
 gtest_main.a : gtest-all.o gtest_main.o
 	$(AR) $(ARFLAGS) $@ $^
 
-.PHONY: all test clean
+.PHONY: test clean
 
 build: $(objects)
-	g++  -o $(app) $(objects) $(csources:.c=.o)  -lcurl -lpthread -lcrypto
+	g++  -o $(app) $(objects) $(csources:.c=.o)  $(LDFLAGS)
 
 %.o: %.cpp 
 	$(CPP) $(CFLAGS) $(INCLUDES) -c $<  -o $@
 
 
 buildtest: gtest_main.a $(testobjs)
-	$(CPP) $(CPPFLAGS) $(CXXFLAGS) -lpthread $^ -o $(testapp)
+	$(CPP) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $^ -o $(testapp)
 
 test: buildtest
-	./$(testapp)
-	
+	@./$(testapp)
+
 
 clean:
-	rm -f *.o $(app) $(testapp)
+	rm -f *.o $(app) $(testapp) *.a
