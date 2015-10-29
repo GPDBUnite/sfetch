@@ -2,16 +2,7 @@
 #include <cstring>
 #include <sstream>
 
-
-struct Bufinfo
-{
-    /* data */
-    char* buf;
-    SIZE_T maxsize;
-    SIZE_T len;
-};
-
-SIZE_T WriterCallback(void *contents, SIZE_T size, SIZE_T nmemb, void *userp)
+static SIZE_T WriterCallback(void *contents, SIZE_T size, SIZE_T nmemb, void *userp)
 {
   SIZE_T realsize = size * nmemb;
   Bufinfo *p = (Bufinfo*) userp;
@@ -28,9 +19,9 @@ HTTPClient::HTTPClient(const char* url, SIZE_T cap, OffsetMgr* o)
 {
     this->curl = curl_easy_init();
     curl_easy_setopt(this->curl, CURLOPT_VERBOSE, 1L);
-    //curl_easy_setopt(curl, CURLOPT_PROXY, "127.0.0.1:8080"); 
+    curl_easy_setopt(curl, CURLOPT_PROXY, "127.0.0.1:8080"); 
     curl_easy_setopt(this->curl, CURLOPT_WRITEFUNCTION, WriterCallback);
-    curl_easy_setopt(this->curl, CURLOPT_FORBID_REUSE, 1L);
+    //curl_easy_setopt(this->curl, CURLOPT_FORBID_REUSE, 1L);
     this->AddHeaderField(HOST,urlparser.Host());
 }
 
@@ -54,12 +45,13 @@ bool HTTPClient::AddHeaderField(HeaderField f, const char* v) {
 
 const char* GetFieldString(HeaderField f) {
     switch(f) {
-        case HOST: return "host";
-        case RANGE: return "range";
-        case DATE:  return "date";
-        case CONTENTLENGTH: return "contentlength";
-        default:
-            return "unknown";
+    case HOST: return "host";
+    case RANGE: return "range";
+    case DATE:  return "date";
+    case CONTENTLENGTH: return "content-length";
+    case AUTHORIZATION: return "authorization";
+    default:
+        return "unknown";
     }
 }
 
@@ -79,7 +71,7 @@ SIZE_T HTTPClient::fetchdata(SIZE_T offset, char* data, SIZE_T len) {
     char rangebuf[128];
 
     curl_easy_setopt(curl_handle, CURLOPT_URL, this->sourceurl);
-    curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WriterCallback);
+
     curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void *)&bi);
 
     sprintf(rangebuf, "bytes=%lld-%lld", offset, offset + len - 1);
@@ -104,6 +96,7 @@ SIZE_T HTTPClient::fetchdata(SIZE_T offset, char* data, SIZE_T len) {
     } else {
         curl_easy_getinfo (curl_handle, CURLINFO_RESPONSE_CODE, &res);
         if(! ((res == 200) || (res == 206)) ){
+            fprintf(stderr, "%.*s", data, len);
             bi.len = -1;
         }
     }

@@ -78,8 +78,18 @@ enum HeaderField {
 	RANGE,
 	DATE,
 	CONTENTLENGTH,
-
+    AUTHORIZATION,
 };
+
+struct Bufinfo
+{
+    /* data */
+    char* buf;
+    SIZE_T maxsize;
+    SIZE_T len;
+};
+
+const char* GetFieldString(HeaderField f);
 
 class HTTPClient : public BlockingBuffer
 {
@@ -90,8 +100,6 @@ public:
     bool AddHeaderField(HeaderField f, const char* v);
 protected:
     virtual SIZE_T fetchdata(SIZE_T offset, char* data, SIZE_T len);
-
-private:
     CURL *curl;
     Method method;
     std::map<HeaderField, std::string> fields;

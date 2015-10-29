@@ -6,6 +6,8 @@
 
 #include "BlockingBuffer.h"
 #include "HTTPClient.h"
+#include "S3Client.h"
+
 
 //#define PARALLELNUM 5
 //#define CHUNKSIZE   7*1034*125
@@ -123,5 +125,5 @@ SIZE_T BlockingBuffer::Fill() {
 
 
 BlockingBuffer* BlockingBuffer::CreateBuffer(const char* url, OffsetMgr* o) {
-    return url == NULL ? NULL : new HTTPClient(url, CHUNKSIZE, o);
+    return url == NULL ? NULL : new S3Client(url, CHUNKSIZE, o);
 }

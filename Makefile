@@ -7,7 +7,7 @@ INCLUDES = -I.
 LDFLAGS=-lpthread -lcrypto -lcurl
 
 sources = BlockingBuffer.cpp OffsetMgr.cpp URLParser.cpp utils.cpp http_parser.cpp \
-    main.cpp HTTPClient.cpp
+    main.cpp HTTPClient.cpp S3Client.cpp
 testcources = utils_test.cpp
 
 
