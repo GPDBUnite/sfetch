@@ -1,7 +1,7 @@
 #include "BlockingBuffer.h"
 #include <pthread.h>
 
-#define PARALLELNUM 1
+#define PARALLELNUM 11
 //#define CHUNKSIZE   7*1034*125
 //#define CHUNKSIZE   64*1024*1024
 #define CHUNKSIZE   1233497
@@ -36,7 +36,8 @@ int main(int argc, char const *argv[])
         printf("not enough parameters\n");
         return 1;
     }
-    int filelen = atoi(argv[2]);
+    SIZE_T filelen = 7591690240;
+
     /* code */
     //InitRB();
     //InitOffset(601882624, CHUNKSIZE);

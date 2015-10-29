@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-OffsetMgr::OffsetMgr(size_t m, size_t c)
+OffsetMgr::OffsetMgr(SIZE_T m, SIZE_T c)
 :maxsize(m)
 ,chunksize(c)
 ,curpos(0)
@@ -32,7 +32,7 @@ Range OffsetMgr::NextOffset() {
     return ret;
 }
 
-void OffsetMgr::Reset(size_t n) {
+void OffsetMgr::Reset(SIZE_T n) {
     pthread_mutex_lock(&this->offset_lock);
     this->curpos = n;
     pthread_mutex_unlock(&this->offset_lock);

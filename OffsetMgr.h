@@ -5,6 +5,8 @@
 
 #include <pthread.h>
 
+typedef  unsigned long long  SIZE_T;
+
 struct Range
 {
     /* data */
@@ -14,10 +16,10 @@ struct Range
 
 class OffsetMgr {
 public:
-    OffsetMgr(size_t maxsize, size_t chunksize);
+    OffsetMgr(SIZE_T maxsize, SIZE_T chunksize);
     ~OffsetMgr(){pthread_mutex_destroy(&this->offset_lock);};
     Range NextOffset(); // ret.len == 0 means EOF
-    void Reset(size_t n);
+    void Reset(SIZE_T n);
 private:
     pthread_mutex_t offset_lock;
     size_t maxsize;
