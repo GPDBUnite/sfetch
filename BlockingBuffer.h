@@ -19,6 +19,7 @@ public:
     virtual ~BlockingBuffer();
     bool Init();
     bool EndOfFile(){return this->eof;};
+    bool Error(){return this->error;};
 
     size_t Read(char* buf, size_t len);
     size_t Fill();
@@ -34,6 +35,7 @@ protected:
 private:
     int status;
     bool eof;
+    bool error;
     pthread_mutex_t stat_mutex;
     pthread_cond_t   stat_cond;
     size_t readpos;

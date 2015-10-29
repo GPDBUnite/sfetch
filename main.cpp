@@ -18,7 +18,10 @@ void* DownloadThreadfunc(void* data) {
             break;
         if (filled_size == -1) { // Error
             // retry?
-            continue;
+            if(buffer->Error()) {
+                break;
+            } else
+                continue;
         }
     } while(1);
     std::cout<<"quit\n";
@@ -28,12 +31,18 @@ void* DownloadThreadfunc(void* data) {
 
 int main(int argc, char const *argv[])
 {
+    // filepath and file length
+    if(argc < 3) {
+        printf("not enough parameters\n");
+        return 1;
+    }
+    int filelen = atoi(argv[2]);
     /* code */
     //InitRB();
     //InitOffset(601882624, CHUNKSIZE);
     pthread_t threads[PARALLELNUM];
     BlockingBuffer* buffers[PARALLELNUM];
-    OffsetMgr* o = new OffsetMgr(1016517804,CHUNKSIZE);
+    OffsetMgr* o = new OffsetMgr(filelen,CHUNKSIZE);
     for(int i = 0; i < PARALLELNUM; i++) {
         // Create
         buffers[i] = BlockingBuffer::CreateBuffer(argv[1], o);
@@ -48,9 +57,10 @@ int main(int argc, char const *argv[])
     size_t len;
     size_t totallen = 0;
 
-    int fd = open("/home/jasper/work/s3/fetcher/data.bin", O_RDWR | O_CREAT, S_IRUSR);
+    int fd = open("data.bin", O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
     if(fd == -1) {
         perror("create file error");
+        return 1;
     }
     while(true) {
         buf = buffers[i%PARALLELNUM];
@@ -58,9 +68,12 @@ int main(int argc, char const *argv[])
 
         write(fd, data, len);
         totallen += len;
-        if(len < 4096)
+        if(len < 4096) {
             i++;
-        if(totallen ==  1016517804) {
+            if(buf->Error())
+                break;
+        }
+        if(totallen ==  filelen) {
             if(buf->EndOfFile())
                 break;
         }

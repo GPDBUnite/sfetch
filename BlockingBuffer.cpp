@@ -7,7 +7,7 @@
 #include "BlockingBuffer.h"
 #include "HTTPClient.h"
 
-#define PARALLELNUM 5
+//#define PARALLELNUM 5
 //#define CHUNKSIZE   7*1034*125
 //#define CHUNKSIZE   64*1024*1024
 #define CHUNKSIZE   1233497
@@ -21,6 +21,7 @@ BlockingBuffer::BlockingBuffer(const char* url, size_t cap, OffsetMgr* o)
 ,status(BlockingBuffer::STATUS_EMPTY)
 ,eof(false)
 ,mgr(o)
+,error(false)
 {
     this->nextpos = o->NextOffset();
 }
@@ -100,7 +101,10 @@ size_t BlockingBuffer::Fill() {
             break;
         } else if (readlen == -1) { // Error, network error or sth.
             // perror, retry
+            this->error = true;
             // Ensure status is still empty
+            this->status = BlockingBuffer::STATUS_READY;
+            pthread_cond_signal(&this->stat_cond);
             break;
         } else { // > 0
             offset += readlen;

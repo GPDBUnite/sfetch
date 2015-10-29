@@ -28,6 +28,7 @@ HTTPClient::HTTPClient(const char* url, size_t cap, OffsetMgr* o)
 {
     this->curl = curl_easy_init();
     curl_easy_setopt(this->curl, CURLOPT_VERBOSE, 1L);
+    curl_easy_setopt(curl, CURLOPT_PROXY, "127.0.0.1:8080"); 
     curl_easy_setopt(this->curl, CURLOPT_WRITEFUNCTION, WriterCallback);
     curl_easy_setopt(this->curl, CURLOPT_FORBID_REUSE, 1L);
     this->AddHeaderField(HOST,urlparser.Host());
@@ -81,13 +82,15 @@ size_t HTTPClient::fetchdata(size_t offset, char* data, size_t len) {
     curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WriterCallback);
     curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void *)&bi);
 
-    sprintf(rangebuf, "%d-%d", offset, offset + len - 1);
+    sprintf(rangebuf, "bytes=%d-%d", offset, offset + len - 1);
     this->AddHeaderField(RANGE, rangebuf);
-    std::stringstream sstr;
+    
     
     std::map<HeaderField, std::string>::iterator it;
     for(it = this->fields.begin(); it != this->fields.end(); it++) {
-        sstr<<GetFieldString(it->first)<<":"<<it->second;
+        std::stringstream sstr;
+        sstr<<GetFieldString(it->first)<<": "<<it->second;
+        std::cout<<sstr.str().c_str()<<std::endl;
         chunk = curl_slist_append(chunk, sstr.str().c_str());
     }
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
@@ -98,6 +101,11 @@ size_t HTTPClient::fetchdata(size_t offset, char* data, size_t len) {
         fprintf(stderr, "curl_easy_perform() failed: %s\n",
         curl_easy_strerror(res));
         bi.len = -1;
+    } else {
+        curl_easy_getinfo (curl_handle, CURLINFO_RESPONSE_CODE, &res);
+        if(! ((res == 200) || (res == 206)) ){
+            bi.len = -1;
+        }
     }
 
     return bi.len;
