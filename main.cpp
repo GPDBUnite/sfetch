@@ -36,7 +36,7 @@ int main(int argc, char const *argv[])
         printf("not enough parameters\n");
         return 1;
     }
-    SIZE_T filelen = 7591690240;
+    SIZE_T filelen = atoll(argv[2]);
 
     /* code */
     //InitRB();
