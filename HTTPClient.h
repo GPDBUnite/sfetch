@@ -84,12 +84,12 @@ enum HeaderField {
 class HTTPClient : public BlockingBuffer
 {
 public:
-    HTTPClient(const char* url, size_t cap, OffsetMgr* o);
+    HTTPClient(const char* url, SIZE_T cap, OffsetMgr* o);
     ~HTTPClient();
     bool SetMethod(Method m);
     bool AddHeaderField(HeaderField f, const char* v);
 protected:
-    virtual size_t fetchdata(size_t offset, char* data, size_t len);
+    virtual SIZE_T fetchdata(SIZE_T offset, char* data, SIZE_T len);
 
 private:
     CURL *curl;

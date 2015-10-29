@@ -1,7 +1,7 @@
 #include "BlockingBuffer.h"
 #include <pthread.h>
 
-#define PARALLELNUM 5
+#define PARALLELNUM 1
 //#define CHUNKSIZE   7*1034*125
 //#define CHUNKSIZE   64*1024*1024
 #define CHUNKSIZE   1233497

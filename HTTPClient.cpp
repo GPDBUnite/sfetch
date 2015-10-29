@@ -7,13 +7,13 @@ struct Bufinfo
 {
     /* data */
     char* buf;
-    int maxsize;
-    int len;
+    SIZE_T maxsize;
+    SIZE_T len;
 };
 
-size_t WriterCallback(void *contents, size_t size, size_t nmemb, void *userp)
+SIZE_T WriterCallback(void *contents, SIZE_T size, SIZE_T nmemb, void *userp)
 {
-  size_t realsize = size * nmemb;
+  SIZE_T realsize = size * nmemb;
   Bufinfo *p = (Bufinfo*) userp;
   //std::cout<<"in writer"<<std::endl;
   // assert p->len + realsize < p->maxsize
@@ -22,7 +22,7 @@ size_t WriterCallback(void *contents, size_t size, size_t nmemb, void *userp)
   return realsize;
 }
 
-HTTPClient::HTTPClient(const char* url, size_t cap, OffsetMgr* o)
+HTTPClient::HTTPClient(const char* url, SIZE_T cap, OffsetMgr* o)
 :BlockingBuffer(url, cap, o)
 ,urlparser(url)
 {
@@ -65,7 +65,7 @@ const char* GetFieldString(HeaderField f) {
 
 // buffer size should be at lease len
 // read len data from offest
-size_t HTTPClient::fetchdata(size_t offset, char* data, size_t len) {
+SIZE_T HTTPClient::fetchdata(SIZE_T offset, char* data, SIZE_T len) {
     if(len == 0)  return 0;
 
     Bufinfo bi;
@@ -82,7 +82,7 @@ size_t HTTPClient::fetchdata(size_t offset, char* data, size_t len) {
     curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WriterCallback);
     curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void *)&bi);
 
-    sprintf(rangebuf, "bytes=%d-%d", offset, offset + len - 1);
+    sprintf(rangebuf, "bytes=%lld-%lld", offset, offset + len - 1);
     this->AddHeaderField(RANGE, rangebuf);
     
     

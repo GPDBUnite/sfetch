@@ -2,7 +2,7 @@
 GTEST_DIR=gtest
 
 CPP=g++
-CFLAGS=
+CFLAGS= -g
 INCLUDES = -I.
 LDFLAGS=-lpthread -lcrypto -lcurl
 
