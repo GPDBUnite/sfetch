@@ -147,7 +147,7 @@ char* SignatureV2(const char* date, const char* path, const char* key) {
   if( !date || !path || !key) {
     return false;
   }
-  maxlen = strlen(date) + strlen(path) + 8;
+  maxlen = strlen(date) + strlen(path) + 20;
   tmpbuf = (char*)alloca(maxlen);
   sprintf(tmpbuf, "GET\n\n\n%s\n%s", date, path);
   printf("%s\n",tmpbuf);

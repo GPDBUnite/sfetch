@@ -17,6 +17,7 @@ S3Client::~S3Client() {
 SIZE_T S3Client::fetchdata(SIZE_T offset, char* data, SIZE_T len) {
     if(len == 0)  return 0;
 
+ RETRY:
     Bufinfo bi;
     bi.buf = data;
     bi.maxsize = len;
@@ -39,7 +40,7 @@ SIZE_T S3Client::fetchdata(SIZE_T offset, char* data, SIZE_T len) {
     std::map<HeaderField, std::string>::iterator it;
     for(it = this->fields.begin(); it != this->fields.end(); it++) {
         std::stringstream sstr;
-        sstr<<GetFieldString(it->first)<<":"<<it->second;
+        sstr<<GetFieldString(it->first)<<": "<<it->second;
         std::cout<<sstr.str().c_str()<<std::endl;
         chunk = curl_slist_append(chunk, sstr.str().c_str());
     }
@@ -54,6 +55,9 @@ SIZE_T S3Client::fetchdata(SIZE_T offset, char* data, SIZE_T len) {
         bi.len = -1;
     } else {
         curl_easy_getinfo (curl_handle, CURLINFO_RESPONSE_CODE, &res);
+        if( res == 403) {
+            goto RETRY;
+        }
         if(! ((res == 200) || (res == 206)) ){
             bi.len = -1;
         }

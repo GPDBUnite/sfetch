@@ -1,7 +1,7 @@
 #include "BlockingBuffer.h"
 #include <pthread.h>
 
-#define PARALLELNUM 1
+#define PARALLELNUM 8
 //#define CHUNKSIZE   7*1034*125
 //#define CHUNKSIZE   64*1024*1024
 #define CHUNKSIZE   1233434
@@ -14,7 +14,7 @@ void* DownloadThreadfunc(void* data) {
     do {
         filled_size = buffer->Fill();
         //std::cout<<"Fillsize is "<<filled_size<<" "<<data<<std::endl;
-        if(buffer->EndOfFile() == true)
+        if(buffer->EndOfFile())
             break;
         if (filled_size == -1) { // Error
             // retry?

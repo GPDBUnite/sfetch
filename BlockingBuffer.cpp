@@ -98,23 +98,26 @@ SIZE_T BlockingBuffer::Fill() {
             readlen = 0; // EOF
         }
         if(readlen == 0) {// EOF!!
-            this->eof = true;
-            std::cout<<"reach end of file"<<std::endl;
+            if(this->realsize == 0) {
+                this->eof = true;
+            }
+            std::cout<<"reach end of file ?"<<std::endl;
             break;
         } else if (readlen == -1) { // Error, network error or sth.
             // perror, retry
             this->error = true;
             // Ensure status is still empty
-            this->status = BlockingBuffer::STATUS_READY;
-            pthread_cond_signal(&this->stat_cond);
+            //this->status = BlockingBuffer::STATUS_READY;
+            //pthread_cond_signal(&this->stat_cond);
             break;
         } else { // > 0
             offset += readlen;
             leftlen -= readlen;
             this->realsize += readlen;
-            this->status = BlockingBuffer::STATUS_READY;
+            // this->status = BlockingBuffer::STATUS_READY;
         }
     }
+    this->status = BlockingBuffer::STATUS_READY;
     if(this->realsize >= 0) {
         pthread_cond_signal(&this->stat_cond);
     }
@@ -126,4 +129,5 @@ SIZE_T BlockingBuffer::Fill() {
 
 BlockingBuffer* BlockingBuffer::CreateBuffer(const char* url, OffsetMgr* o) {
     return url == NULL ? NULL : new S3Client(url, CHUNKSIZE, o);
+    //return url == NULL ? NULL : new HTTPClient(url, CHUNKSIZE, o);
 }
