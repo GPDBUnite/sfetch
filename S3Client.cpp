@@ -5,8 +5,23 @@
 #include "utils.h"
 #include "S3Client.h"
 
+
+static SIZE_T WriterCallback(void *contents, SIZE_T size, SIZE_T nmemb, void *userp)
+{
+  SIZE_T realsize = size * nmemb;
+  Bufinfo *p = (Bufinfo*) userp;
+  //std::cout<<"in writer"<<std::endl;
+  // assert p->len + realsize < p->maxsize
+  memcpy(p->buf + p->len, contents, realsize);
+  p->len += realsize;
+  return realsize;
+}
+
+
 S3Client::S3Client(const char* url, SIZE_T cap, OffsetMgr* o)
-    :HTTPClient(url, cap, o) {
+:HTTPClient(url, cap, o) 
+{
+    curl_easy_setopt(this->curl, CURLOPT_WRITEFUNCTION, WriterCallback);
 }
 
 S3Client::~S3Client() {
