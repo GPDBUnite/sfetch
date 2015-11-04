@@ -1,6 +1,5 @@
-#include "URLParser.h"
+#include "HTTPCommon.h"
 
-#include "http_parser.h"
 
 #include <cstring>
 #include <cstdlib>

@@ -2,10 +2,10 @@
 #define _OFFSET_MANAGER_
 #include <cstddef>
 #include <cstdlib>
-
+#include <cstdint>
 #include <pthread.h>
 
-typedef  unsigned long long  SIZE_T;
+typedef  uint64_t  SIZE_T;
 
 struct Range
 {

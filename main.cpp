@@ -3,17 +3,18 @@
 
 #define PARALLELNUM 8
 //#define CHUNKSIZE   7*1034*125
-//#define CHUNKSIZE   64*1024*1024
-#define CHUNKSIZE   1233434
+#define CHUNKSIZE   64*1024*1024
+//#define CHUNKSIZE   1233434
 
 void* DownloadThreadfunc(void* data) {
 
     BlockingBuffer* buffer = (BlockingBuffer*)data;
     size_t filled_size = 0;
+    void* pp = (void*)pthread_self();
     // assert offset > 0
     do {
         filled_size = buffer->Fill();
-        //std::cout<<"Fillsize is "<<filled_size<<" "<<data<<std::endl;
+        std::cout<<"Fillsize is "<<filled_size<<" of "<<pp<<std::endl;
         if(buffer->EndOfFile())
             break;
         if (filled_size == -1) { // Error
@@ -28,6 +29,7 @@ void* DownloadThreadfunc(void* data) {
     return NULL;
 }
 
+#ifdef ASMAIN
 
 int main(int argc, char const *argv[])
 {
@@ -91,3 +93,5 @@ int main(int argc, char const *argv[])
     delete o;
     return 0;
 }
+
+#endif // ASMAIN

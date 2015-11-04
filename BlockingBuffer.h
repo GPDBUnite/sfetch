@@ -10,8 +10,9 @@
 #include <iostream>
 
 #include "OffsetMgr.h"
+#include <cstdint>
 
-typedef  unsigned long long  SIZE_T;
+typedef  uint64_t  SIZE_T;
 
 class BlockingBuffer
 {

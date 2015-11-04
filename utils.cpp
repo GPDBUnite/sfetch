@@ -11,6 +11,7 @@
 #include <openssl/buffer.h>
 #include <stdint.h>
 
+#include <curl/curl.h>
 
 bool gethttpnow(char datebuf[65]) { //('D, d M Y H:i:s T')
   struct tm* tm_info;
@@ -150,7 +151,7 @@ char* SignatureV2(const char* date, const char* path, const char* key) {
   maxlen = strlen(date) + strlen(path) + 20;
   tmpbuf = (char*)alloca(maxlen);
   sprintf(tmpbuf, "GET\n\n\n%s\n%s", date, path);
-  printf("%s\n",tmpbuf);
+  //printf("%s\n",tmpbuf);
   outbuf = sha1hmac(tmpbuf, key);
   len = strlen(outbuf);
   return Base64Encode(outbuf, len);
@@ -158,4 +159,22 @@ char* SignatureV2(const char* date, const char* path, const char* key) {
 
 char* SignatureV4(const char* date, const char* path, const char* key) {
   return NULL;
+}
+
+CURL* CreateCurlHandler(const char* path) {
+    CURL *curl = NULL;
+    if(!path) {
+        return NULL;
+    } else {
+        curl = curl_easy_init();
+    }
+
+    if(curl) {
+        curl_easy_setopt(curl, CURLOPT_URL, path);
+        curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+
+    } else {
+        return NULL;
+    }
+    return curl;
 }
