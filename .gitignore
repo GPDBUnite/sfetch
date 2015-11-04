@@ -5,3 +5,4 @@ sfetch_test
 a.out
 .DS_Store
 *~
+core.*

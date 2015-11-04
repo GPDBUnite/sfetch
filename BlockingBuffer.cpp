@@ -5,14 +5,14 @@
 #include <cstring>
 
 #include "BlockingBuffer.h"
-#include "HTTPClient.h"
-#include "S3Client.h"
+#include "HTTPFetcher.h"
+#include "S3Fetcher.h"
 
 
 //#define PARALLELNUM 5
 //#define CHUNKSIZE   7*1034*125
-//#define CHUNKSIZE   64*1024*1024
-#define CHUNKSIZE   1233497
+#define CHUNKSIZE   64*1024*1024
+//#define CHUNKSIZE   1233497
 
 
 BlockingBuffer::BlockingBuffer(const char* url, SIZE_T cap, OffsetMgr* o)
@@ -128,6 +128,5 @@ SIZE_T BlockingBuffer::Fill() {
 
 
 BlockingBuffer* BlockingBuffer::CreateBuffer(const char* url, OffsetMgr* o) {
-    return url == NULL ? NULL : new S3Client(url, CHUNKSIZE, o);
-    //return url == NULL ? NULL : new HTTPClient(url, CHUNKSIZE, o);
+    return url == NULL ? NULL : new S3Fetcher(url, CHUNKSIZE, o);
 }

@@ -1,10 +1,6 @@
-#include "HTTPClient.h"
+#include "HTTPFetcher.h"
 #include <cstring>
 #include <sstream>
-
-#include "utils.h"
-#include "S3Client.h"
-
 
 static SIZE_T WriterCallback(void *contents, SIZE_T size, SIZE_T nmemb, void *userp)
 {
@@ -17,22 +13,41 @@ static SIZE_T WriterCallback(void *contents, SIZE_T size, SIZE_T nmemb, void *us
   return realsize;
 }
 
-
-S3Client::S3Client(const char* url, SIZE_T cap, OffsetMgr* o)
-:HTTPClient(url, cap, o) 
+HTTPFetcher::HTTPFetcher(const char* url, SIZE_T cap, OffsetMgr* o)
+:BlockingBuffer(url, cap, o)
+,urlparser(url)
 {
+    this->curl = curl_easy_init();
+    //curl_easy_setopt(this->curl, CURLOPT_VERBOSE, 1L);
+    //curl_easy_setopt(curl, CURLOPT_PROXY, "127.0.0.1:8080"); 
     curl_easy_setopt(this->curl, CURLOPT_WRITEFUNCTION, WriterCallback);
+    curl_easy_setopt(this->curl, CURLOPT_FORBID_REUSE, 1L);
+    this->AddHeaderField(HOST,urlparser.Host());
 }
 
-S3Client::~S3Client() {
+HTTPFetcher::~HTTPFetcher() {
+    curl_easy_cleanup(this->curl);
+}
+
+bool HTTPFetcher::SetMethod(Method m) {
+    this->method = m;
+    return true;
+}
+
+bool HTTPFetcher::AddHeaderField(HeaderField f, const char* v) {
+    if(v == NULL) {
+        // log warning
+        return false;
+    } 
+    this->fields[f] = std::string(v);
+    return true;
 }
 
 // buffer size should be at lease len
 // read len data from offest
-SIZE_T S3Client::fetchdata(SIZE_T offset, char* data, SIZE_T len) {
+SIZE_T HTTPFetcher::fetchdata(SIZE_T offset, char* data, SIZE_T len) {
     if(len == 0)  return 0;
 
- RETRY:
     Bufinfo bi;
     bi.buf = data;
     bi.maxsize = len;
@@ -50,7 +65,6 @@ SIZE_T S3Client::fetchdata(SIZE_T offset, char* data, SIZE_T len) {
     sprintf(rangebuf, "bytes=%lld-%lld", offset, offset + len - 1);
     this->AddHeaderField(RANGE, rangebuf);
     
-    this->SignV2();
     
     std::map<HeaderField, std::string>::iterator it;
     for(it = this->fields.begin(); it != this->fields.end(); it++) {
@@ -59,7 +73,6 @@ SIZE_T S3Client::fetchdata(SIZE_T offset, char* data, SIZE_T len) {
         std::cout<<sstr.str().c_str()<<std::endl;
         chunk = curl_slist_append(chunk, sstr.str().c_str());
     }
-
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
 
     res = curl_easy_perform(curl_handle);
@@ -70,26 +83,11 @@ SIZE_T S3Client::fetchdata(SIZE_T offset, char* data, SIZE_T len) {
         bi.len = -1;
     } else {
         curl_easy_getinfo (curl_handle, CURLINFO_RESPONSE_CODE, &res);
-        if( res == 403) {
-            goto RETRY;
-        }
         if(! ((res == 200) || (res == 206)) ){
+            fprintf(stderr, "%.*s", data, len);
             bi.len = -1;
         }
     }
 
     return bi.len;
-}
-
-bool S3Client::SignV2() {
-    char time[64];
-    char line[256];
-    gethttpnow(time);
-    this->AddHeaderField(CONTENTLENGTH, "0");
-    char* tmp;
-    this->AddHeaderField(DATE,time);
-    tmp = SignatureV2(time, this->urlparser.Path(), "BLkT9BWkXCmQT0P1PAriPf3K6ygJorxAD1n/4Tgk");
-    sprintf(line, "AWS AKIAJDNIZCZXSKXVP5PA:%s",tmp);
-    this->AddHeaderField(AUTHORIZATION, line);
-    free(tmp);
 }

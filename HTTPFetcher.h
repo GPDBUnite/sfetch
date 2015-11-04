@@ -1,11 +1,11 @@
-#ifndef __HTTPCLIENT__
-#define __HTTPCLIENT__
+#ifndef __HTTPFETCHER__
+#define __HTTPFETCHER__
 
 #include <map>
 #include <string>
 
 #include "BlockingBuffer.h"
-#include "URLParser.h"
+#include "HTTPCommon.h"
 
 #include <curl/curl.h>
 // enum OS_type { Linux, Apple, Windows };
@@ -34,14 +34,6 @@
 //             tag##ENUM_NAME index){ return gs_##ENUM_NAME [index]; }
 // #endif
 
-enum Method
-{
-    GET, 
-    POST, 
-    DELETE, 
-    PUT,
-    HEAD
-};
 
 enum AWS_Region
 {
@@ -56,31 +48,6 @@ enum AWS_Region
     SA_EAST_1
 };
 
-static const char* DATE_HEADER = "date";
-static const char* AWS_DATE_HEADER = "X-Amz-Date";
-static const char* AWS_SECURITY_TOKEN = "X-Amz-Security-Token";
-static const char* ACCEPT_HEADER = "accept";
-static const char* ACCEPT_CHAR_SET_HEADER = "accept-charset";
-static const char* ACCEPT_ENCODING_HEADER = "accept-encoding";
-static const char* AUTHORIZATION_HEADER = "authorization";
-static const char* AWS_AUTHORIZATION_HEADER = "authorization";
-static const char* COOKIE_HEADER = "cookie";
-static const char* CONTENT_LENGTH_HEADER = "content-length";
-static const char* CONTENT_TYPE_HEADER = "content-type";
-static const char* USER_AGENT_HEADER = "user-agent";
-static const char* VIA_HEADER = "via";
-static const char* HOST_HEADER = "host";
-static const char* AMZ_TARGET_HEADER = "x-amz-target";
-static const char* X_AMZ_EXPIRES_HEADER = "X-Amz-Expires";
-
-enum HeaderField {
-	HOST,
-	RANGE,
-	DATE,
-	CONTENTLENGTH,
-    AUTHORIZATION,
-};
-
 struct Bufinfo
 {
     /* data */
@@ -89,13 +56,12 @@ struct Bufinfo
     SIZE_T len;
 };
 
-const char* GetFieldString(HeaderField f);
 
-class HTTPClient : public BlockingBuffer
+class HTTPFetcher : public BlockingBuffer
 {
 public:
-    HTTPClient(const char* url, SIZE_T cap, OffsetMgr* o);
-    ~HTTPClient();
+    HTTPFetcher(const char* url, SIZE_T cap, OffsetMgr* o);
+    ~HTTPFetcher();
     bool SetMethod(Method m);
     bool AddHeaderField(HeaderField f, const char* v);
 protected:

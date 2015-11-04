@@ -2,12 +2,12 @@
 GTEST_DIR=gtest
 
 CPP=g++
-CFLAGS= -g
-INCLUDES = -I.
-LDFLAGS=-lpthread -lcrypto -lcurl
+CFLAGS= -g -std=c++0x
+INCLUDES = -I. -I/usr/include/libxml2
+LDFLAGS=-lpthread -lcrypto -lcurl -lxml2
 
 sources = BlockingBuffer.cpp OffsetMgr.cpp URLParser.cpp utils.cpp http_parser.cpp \
-    main.cpp HTTPClient.cpp S3Client.cpp
+    main.cpp HTTPFetcher.cpp S3Fetcher.cpp HTTPCommon.cpp S3Response.cpp S3Common.cpp
 testcources = utils_test.cpp
 
 

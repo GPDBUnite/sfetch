@@ -1,6 +1,7 @@
 #ifndef _UTILFUNCTIONS_
 #define _UTILFUNCTIONS_
 
+
 bool gethttpnow(char datebuf[65]);
 
 bool lowercase(char* out, const char* in);
@@ -21,7 +22,6 @@ bool sha256hmac(char* str, char out[65], char* secret);
 //return malloced because Base64Encode
 char* SignatureV2(const char* date, const char* path, const char* key);
 char* SignatureV4(const char* date, const char* path, const char* key);
-
 
 
 
