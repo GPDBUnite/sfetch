@@ -94,18 +94,15 @@ ListBucketResult*
 ListBucket(const char* host, const char* bucket, const char* prefix, S3Credential &cred) {
     std::stringstream sstr;
     if(prefix) {
-        sstr<<"http://"<<bucket<<"."<<host<<"?prefix="<<prefix;
+        sstr<<"http://"<<host<<"/"<<bucket<<"?prefix="<<prefix;
+		//sstr<<"http://"<<bucket<<"."<<host<<"?prefix="<<prefix;
     } else {
         sstr<<"http://"<<bucket<<"."<<host;
     }
     char* url = strdup(sstr.str().c_str());
     //CURL* curl = CreateCurlHandler(sstr.str().c_str());
-    CURL *curl = NULL;
-    if(!path) {
-        return NULL;
-    } else {
-        curl = curl_easy_init();
-    }
+    CURL *curl = curl_easy_init();
+
 
     if(curl) {
         curl_easy_setopt(curl, CURLOPT_URL, url);
@@ -125,8 +122,9 @@ ListBucket(const char* host, const char* bucket, const char* prefix, S3Credentia
     // header content
     HeaderContent* header = new HeaderContent();
     sstr<<bucket<<".s3.amazonaws.com";
-    header->Add(HOST, sstr.str().c_str());
-    SignGetV2(header, "/metro.pivotal.io/", cred);
+    header->Add(HOST, host);
+	//header->Add(HOST, sstr.str().c_str());
+    SignGetV2(header, "/metro.pivotal.io", cred);
     // set header
     struct curl_slist * chunk = header->GetList();
     // perform curl
@@ -159,7 +157,7 @@ int main()
 {
     S3Credential cred;
     cred.keyid = "AKIAJDNIZCZXSKXVP5PA";
-    cred.secret = "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";
+    cred.secret = "xx";
 
     ListBucketResult* r = ListBucket("s3-us-west-2.amazonaws.com", "metro.pivotal.io", "data", cred);
     return 0;

@@ -48,11 +48,11 @@ build: $(objects)
 	g++  -o $(app) $(objects) $(csources:.c=.o)  $(LDFLAGS)
 
 %.o: %.cpp 
-	$(CPP) $(CFLAGS) $(INCLUDES) -c $<  -o $@
+	$(CPP) $(CFLAGS) $(INCLUDES) -c $<  -o $@  
 
 
 buildtest: gtest_main.a $(testobjs)
-	$(CPP) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $^ -o $(testapp)
+	$(CPP) $(CPPFLAGS) $(CXXFLAGS)  $^ -o $(testapp)  $(LDFLAGS)
 
 test: buildtest
 	@./$(testapp)
