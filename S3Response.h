@@ -14,7 +14,7 @@ struct ListBucketResult
     const char* Name;
     const char* Prefix;
     unsigned int MaxKeys;
-    vector<BucketContent> contents;
+    vector<BucketContent*> contents;
 };
 
 struct BucketContent

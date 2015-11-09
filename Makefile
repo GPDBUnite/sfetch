@@ -59,4 +59,4 @@ test: buildtest
 
 
 clean:
-	rm -f *.o $(app) $(testapp) *.a
+	rm -f *.o $(app) $(testapp) *.a a.out

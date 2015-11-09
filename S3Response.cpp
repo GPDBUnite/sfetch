@@ -45,8 +45,8 @@ BucketContent* BucketContent::CreateBucketContentItem(const char* key, uint64_t 
 
 struct XMLInfo {
     xmlParserCtxtPtr ctxt;
-    xmlDocPtr doc;
 };
+
 
 
 //void S3fetch_curl(const char* url, )
@@ -66,28 +66,45 @@ static SIZE_T ParserCallback(void *contents, SIZE_T size, SIZE_T nmemb, void *us
     return realsize;
 }
 
-static void
-print_element_names(xmlNode * a_node)
-{
-    xmlNode *cur_node = NULL;
-    xmlChar* v = NULL;
-    for (cur_node = a_node; cur_node; cur_node = cur_node->next) {
-        if (cur_node->type == XML_ELEMENT_NODE) {
-            v = xmlNodeGetContent(cur_node);
-            printf("node type: Element, name: %s\t", cur_node->name);
-            printf("value: %s\n", v);
-            if(v) {
-                xmlFree(v);
-                v = NULL;
-            }
-        }
+// require curl 7.17 higher
+xmlParserCtxtPtr DoGetXML(const char* host, const char* bucket, const char* url, S3Credential &cred) {
+    CURL *curl = curl_easy_init();
 
-        print_element_names(cur_node->children);
+    if(curl) {
+        curl_easy_setopt(curl, CURLOPT_URL, url);
+        curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+		curl_easy_setopt(curl, CURLOPT_FORBID_REUSE, 1L);
+
+    } else {
+        return NULL;
     }
-}
+    std::stringstream sstr;
+    XMLInfo xml;
+    xml.ctxt = NULL;
 
-static char* CreateListBucketURL() {
-    return NULL;
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&xml);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, ParserCallback);
+
+    HeaderContent* header = new HeaderContent();
+    sstr<<bucket<<".s3.amazonaws.com";
+    header->Add(HOST, host);
+
+    SignGetV2(header, "/metro.pivotal.io", cred);
+
+    struct curl_slist * chunk = header->GetList();
+
+    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
+
+    CURLcode res = curl_easy_perform(curl);
+
+    if(res != CURLE_OK)
+        fprintf(stderr, "curl_easy_perform() failed: %s\n",
+                curl_easy_strerror(res));
+    xmlParseChunk(xml.ctxt, "", 0, 1);
+    curl_slist_free_all(chunk);
+    curl_easy_cleanup(curl);
+
+	return xml.ctxt;
 }
 
 ListBucketResult*  
@@ -99,67 +116,61 @@ ListBucket(const char* host, const char* bucket, const char* prefix, S3Credentia
     } else {
         sstr<<"http://"<<bucket<<"."<<host;
     }
-    char* url = strdup(sstr.str().c_str());
-    //CURL* curl = CreateCurlHandler(sstr.str().c_str());
-    CURL *curl = curl_easy_init();
 
+	xmlParserCtxtPtr xmlcontext = DoGetXML(host, bucket, sstr.str().c_str(), cred);
+    xmlNode *root_element = xmlDocGetRootElement(xmlcontext->myDoc);
+	ListBucketResult* result = new ListBucketResult();
 
-    if(curl) {
-        curl_easy_setopt(curl, CURLOPT_URL, url);
-        curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+	xmlNodePtr cur;
+	cur = root_element->xmlChildrenNode;
+	while(cur != NULL) {
+		if(!xmlStrcmp(cur->name, (const xmlChar *)"Name")){
+			result->Name = (const char*)xmlNodeGetContent(cur);
+		}
 
-    } else {
-        return NULL;
-    }
-    //free(url);
-    sstr.clear();
-    sstr.str("");
-    XMLInfo xml;
-    xml.ctxt = NULL;
-    xml.doc = NULL;
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&xml);
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, ParserCallback);
-    // header content
-    HeaderContent* header = new HeaderContent();
-    sstr<<bucket<<".s3.amazonaws.com";
-    header->Add(HOST, host);
-	//header->Add(HOST, sstr.str().c_str());
-    SignGetV2(header, "/metro.pivotal.io", cred);
-    // set header
-    struct curl_slist * chunk = header->GetList();
-    // perform curl
-    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
-
-    CURLcode res = curl_easy_perform(curl);
-    /* Check for errors */
-    if(res != CURLE_OK)
-        fprintf(stderr, "curl_easy_perform() failed: %s\n",
-                curl_easy_strerror(res));
-    xmlParseChunk(xml.ctxt, "", 0, 1);
-    xml.doc = xml.ctxt->myDoc;
-
-    /*Get the root element node */
-    xmlNode *root_element = xmlDocGetRootElement(xml.doc);
-
-    print_element_names(root_element);
-
-    // xml doc is ready, parse it
+		if(!xmlStrcmp(cur->name, (const xmlChar *)"Prefix")){
+			result->Prefix = (const char*)xmlNodeGetContent(cur);
+		}
+		
+		if(!xmlStrcmp(cur->name, (const xmlChar *)"Contents")){
+			xmlNodePtr contNode = cur->xmlChildrenNode;
+			BucketContent* item = new BucketContent();
+			while(contNode != NULL) {
+				if(!xmlStrcmp(contNode->name, (const xmlChar *)"Key")){
+					item->key = (const char*)xmlNodeGetContent(contNode);
+				}
+				if(!xmlStrcmp(contNode->name, (const xmlChar *)"Size")){
+					xmlChar* v = xmlNodeGetContent(contNode);
+					item->size = atoll((const char*)v);
+				}
+				contNode = contNode->next;
+			}
+			result->contents.push_back(item);
+		}
+		cur = cur->next;
+	}
     
     /* always cleanup */
-    xmlFreeParserCtxt(xml.ctxt);
-    curl_slist_free_all(chunk);
-    curl_easy_cleanup(curl);
+    xmlFreeParserCtxt(xmlcontext);
+	return result;
 }
 #define ASMAIN
 #ifdef ASMAIN
-
+#include <iostream>
 int main() 
 {
     S3Credential cred;
-    cred.keyid = "AKIAJDNIZCZXSKXVP5PA";
-    cred.secret = "xx";
+    cred.keyid = "AKIAIAFSMJUMQWXB2PUQ";
+    cred.secret = "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";
 
     ListBucketResult* r = ListBucket("s3-us-west-2.amazonaws.com", "metro.pivotal.io", "data", cred);
+
+	vector<BucketContent*>::iterator i;
+	for( i = r->contents.begin(); i != r->contents.end(); i++ ) {
+		BucketContent* p = *i;
+		std::cout<<r->Name<<p->key<<": "<<p->size<<std::endl;
+	}
+	delete r;
     return 0;
 }
 
