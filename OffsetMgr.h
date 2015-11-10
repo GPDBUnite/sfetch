@@ -17,7 +17,9 @@ struct Range
 class OffsetMgr {
 public:
     OffsetMgr(SIZE_T maxsize, SIZE_T chunksize);
-    ~OffsetMgr(){pthread_mutex_destroy(&this->offset_lock);};
+    ~OffsetMgr() {
+        pthread_mutex_destroy(&this->offset_lock);
+    };
     Range NextOffset(); // ret.len == 0 means EOF
     void Reset(SIZE_T n);
 private:

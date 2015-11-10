@@ -9,18 +9,18 @@
 
 enum Method
 {
-    GET, 
-    POST, 
-    DELETE, 
+    GET,
+    POST,
+    DELETE,
     PUT,
     HEAD
 };
 
 enum HeaderField {
-	HOST,
-	RANGE,
-	DATE,
-	CONTENTLENGTH,
+    HOST,
+    RANGE,
+    DATE,
+    CONTENTLENGTH,
     AUTHORIZATION,
 };
 
@@ -46,29 +46,35 @@ static const char* X_AMZ_EXPIRES_HEADER = "X-Amz-Expires";
 class UrlParser
 {
 public:
-	UrlParser(const char* url);
-	~UrlParser();
-	const char* Schema(){return this->schema;};
-	const char* Host(){return this->host;};
-	const char* Path(){return this->path;};
-	/* data */
+    UrlParser(const char* url);
+    ~UrlParser();
+    const char* Schema() {
+        return this->schema;
+    };
+    const char* Host() {
+        return this->host;
+    };
+    const char* Path() {
+        return this->path;
+    };
+    /* data */
 private:
-	char* extract_field(const struct http_parser_url *u, http_parser_url_fields i);
-	char* schema;
-	char* host;
-	char* path;
-	char* fullurl;
+    char* extract_field(const struct http_parser_url *u, http_parser_url_fields i);
+    char* schema;
+    char* host;
+    char* path;
+    char* fullurl;
 };
 
 
 class HeaderContent
 {
- public:
-    HeaderContent(){};
-    ~HeaderContent(){};
+public:
+    HeaderContent() {};
+    ~HeaderContent() {};
     bool Add(HeaderField f, const std::string& value);
     struct curl_slist * GetList();
- private:
+private:
     std::map<HeaderField, std::string> fields;
 };
 

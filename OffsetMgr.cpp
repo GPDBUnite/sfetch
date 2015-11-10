@@ -3,9 +3,9 @@
 #include <iostream>
 
 OffsetMgr::OffsetMgr(SIZE_T m, SIZE_T c)
-:maxsize(m)
-,chunksize(c)
-,curpos(0)
+    :maxsize(m)
+    ,chunksize(c)
+    ,curpos(0)
 {
     pthread_mutex_init(&this->offset_lock, NULL);
 }

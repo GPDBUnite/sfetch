@@ -7,19 +7,19 @@
 
 static SIZE_T WriterCallback(void *contents, SIZE_T size, SIZE_T nmemb, void *userp)
 {
-  SIZE_T realsize = size * nmemb;
-  Bufinfo *p = (Bufinfo*) userp;
-  std::cout<<contents<<" "<<size<<" "<<nmemb<<" "<<userp<<std::endl;
-  //std::cout<<"in writer"<<std::endl;
-  // assert p->len + realsize < p->maxsize
-  memcpy(p->buf + p->len, contents, realsize);
-  p->len += realsize;
-  return realsize;
+    SIZE_T realsize = size * nmemb;
+    Bufinfo *p = (Bufinfo*) userp;
+    std::cout<<contents<<" "<<size<<" "<<nmemb<<" "<<userp<<std::endl;
+    //std::cout<<"in writer"<<std::endl;
+    // assert p->len + realsize < p->maxsize
+    memcpy(p->buf + p->len, contents, realsize);
+    p->len += realsize;
+    return realsize;
 }
 
 
 S3Fetcher::S3Fetcher(const char* url, SIZE_T cap, OffsetMgr* o)
-:HTTPFetcher(url, cap, o) 
+    :HTTPFetcher(url, cap, o)
 {
     curl_easy_setopt(this->curl, CURLOPT_WRITEFUNCTION, WriterCallback);
 }
@@ -32,12 +32,12 @@ S3Fetcher::~S3Fetcher() {
 SIZE_T S3Fetcher::fetchdata(SIZE_T offset, char* data, SIZE_T len) {
     if(len == 0)  return 0;
 
- RETRY:
+RETRY:
     Bufinfo bi;
     bi.buf = data;
     bi.maxsize = len;
     bi.len = 0;
-    
+
     CURL *curl_handle = this->curl;
     CURLcode res;
     struct curl_slist *chunk = NULL;
@@ -49,9 +49,9 @@ SIZE_T S3Fetcher::fetchdata(SIZE_T offset, char* data, SIZE_T len) {
 
     sprintf(rangebuf, "bytes=%lld-%lld", offset, offset + len - 1);
     this->AddHeaderField(RANGE, rangebuf);
-    
+
     this->SignV2();
-    
+
     std::map<HeaderField, std::string>::iterator it;
     for(it = this->fields.begin(); it != this->fields.end(); it++) {
         std::stringstream sstr;
@@ -66,14 +66,14 @@ SIZE_T S3Fetcher::fetchdata(SIZE_T offset, char* data, SIZE_T len) {
 
     if(res != CURLE_OK) {
         fprintf(stderr, "curl_easy_perform() failed: %s\n",
-        curl_easy_strerror(res));
+                curl_easy_strerror(res));
         bi.len = -1;
     } else {
         curl_easy_getinfo (curl_handle, CURLINFO_RESPONSE_CODE, &res);
         if( res == 403) {
             goto RETRY;
         }
-        if(! ((res == 200) || (res == 206)) ){
+        if(! ((res == 200) || (res == 206)) ) {
             bi.len = -1;
         }
     }

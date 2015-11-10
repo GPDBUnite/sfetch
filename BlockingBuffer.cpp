@@ -16,19 +16,19 @@
 
 
 BlockingBuffer::BlockingBuffer(const char* url, SIZE_T cap, OffsetMgr* o)
-:sourceurl(url)
-,bufcap(cap)
-,readpos(0)
-,realsize(0)
-,status(BlockingBuffer::STATUS_EMPTY)
-,eof(false)
-,mgr(o)
-,error(false)
+    :sourceurl(url)
+    ,bufcap(cap)
+    ,readpos(0)
+    ,realsize(0)
+    ,status(BlockingBuffer::STATUS_EMPTY)
+    ,eof(false)
+    ,mgr(o)
+    ,error(false)
 {
     this->nextpos = o->NextOffset();
 }
 
-BlockingBuffer::~BlockingBuffer(){
+BlockingBuffer::~BlockingBuffer() {
     if(this->bufferdata) {
         free(this->bufferdata);
         pthread_mutex_destroy(&this->stat_mutex);
@@ -69,7 +69,7 @@ SIZE_T BlockingBuffer::Read(char* buf, SIZE_T len) {
         this->readpos = 0;
         if(this->status == BlockingBuffer::STATUS_READY)
             this->status = BlockingBuffer::STATUS_EMPTY;
-        if(!this->EndOfFile()){
+        if(!this->EndOfFile()) {
             this->nextpos = this->mgr->NextOffset();
             pthread_cond_signal(&this->stat_cond);
         }

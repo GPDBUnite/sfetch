@@ -4,22 +4,22 @@
 
 static SIZE_T WriterCallback(void *contents, SIZE_T size, SIZE_T nmemb, void *userp)
 {
-  SIZE_T realsize = size * nmemb;
-  Bufinfo *p = (Bufinfo*) userp;
-  //std::cout<<"in writer"<<std::endl;
-  // assert p->len + realsize < p->maxsize
-  memcpy(p->buf + p->len, contents, realsize);
-  p->len += realsize;
-  return realsize;
+    SIZE_T realsize = size * nmemb;
+    Bufinfo *p = (Bufinfo*) userp;
+    //std::cout<<"in writer"<<std::endl;
+    // assert p->len + realsize < p->maxsize
+    memcpy(p->buf + p->len, contents, realsize);
+    p->len += realsize;
+    return realsize;
 }
 
 HTTPFetcher::HTTPFetcher(const char* url, SIZE_T cap, OffsetMgr* o)
-:BlockingBuffer(url, cap, o)
-,urlparser(url)
+    :BlockingBuffer(url, cap, o)
+    ,urlparser(url)
 {
     this->curl = curl_easy_init();
     //curl_easy_setopt(this->curl, CURLOPT_VERBOSE, 1L);
-    //curl_easy_setopt(curl, CURLOPT_PROXY, "127.0.0.1:8080"); 
+    //curl_easy_setopt(curl, CURLOPT_PROXY, "127.0.0.1:8080");
     curl_easy_setopt(this->curl, CURLOPT_WRITEFUNCTION, WriterCallback);
     curl_easy_setopt(this->curl, CURLOPT_FORBID_REUSE, 1L);
     this->AddHeaderField(HOST,urlparser.Host());
@@ -38,7 +38,7 @@ bool HTTPFetcher::AddHeaderField(HeaderField f, const char* v) {
     if(v == NULL) {
         // log warning
         return false;
-    } 
+    }
     this->fields[f] = std::string(v);
     return true;
 }
@@ -52,7 +52,7 @@ SIZE_T HTTPFetcher::fetchdata(SIZE_T offset, char* data, SIZE_T len) {
     bi.buf = data;
     bi.maxsize = len;
     bi.len = 0;
-    
+
     CURL *curl_handle = this->curl;
     CURLcode res;
     struct curl_slist *chunk = NULL;
@@ -64,8 +64,8 @@ SIZE_T HTTPFetcher::fetchdata(SIZE_T offset, char* data, SIZE_T len) {
 
     sprintf(rangebuf, "bytes=%lld-%lld", offset, offset + len - 1);
     this->AddHeaderField(RANGE, rangebuf);
-    
-    
+
+
     std::map<HeaderField, std::string>::iterator it;
     for(it = this->fields.begin(); it != this->fields.end(); it++) {
         std::stringstream sstr;
@@ -79,11 +79,11 @@ SIZE_T HTTPFetcher::fetchdata(SIZE_T offset, char* data, SIZE_T len) {
 
     if(res != CURLE_OK) {
         fprintf(stderr, "curl_easy_perform() failed: %s\n",
-        curl_easy_strerror(res));
+                curl_easy_strerror(res));
         bi.len = -1;
     } else {
         curl_easy_getinfo (curl_handle, CURLINFO_RESPONSE_CODE, &res);
-        if(! ((res == 200) || (res == 206)) ){
+        if(! ((res == 200) || (res == 206)) ) {
             fprintf(stderr, "%.*s", data, len);
             bi.len = -1;
         }

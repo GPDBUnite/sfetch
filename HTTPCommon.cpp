@@ -4,11 +4,16 @@
 
 const char* GetFieldString(HeaderField f) {
     switch(f) {
-    case HOST: return "Host";
-    case RANGE: return "Range";
-    case DATE:  return "Date";
-    case CONTENTLENGTH: return "Content-Length";
-    case AUTHORIZATION: return "Authorization";
+    case HOST:
+        return "Host";
+    case RANGE:
+        return "Range";
+    case DATE:
+        return "Date";
+    case CONTENTLENGTH:
+        return "Content-Length";
+    case AUTHORIZATION:
+        return "Authorization";
     default:
         return "unknown";
     }
@@ -22,7 +27,7 @@ bool HeaderContent::Add(HeaderField f, const std::string& v)
     } else {
         return false;
     }
-    
+
 }
 
 struct curl_slist *HeaderContent::GetList()

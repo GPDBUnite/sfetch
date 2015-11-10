@@ -66,3 +66,4 @@ tags:
 
 lint:
 	cppcheck *.cpp *.h
+	astyle *.cpp *.h

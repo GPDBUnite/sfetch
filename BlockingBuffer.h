@@ -21,8 +21,12 @@ public:
     BlockingBuffer(const char* url, SIZE_T cap, OffsetMgr* o);
     virtual ~BlockingBuffer();
     bool Init();
-    bool EndOfFile(){return this->eof;};
-    bool Error(){return this->error;};
+    bool EndOfFile() {
+        return this->eof;
+    };
+    bool Error() {
+        return this->error;
+    };
 
     SIZE_T Read(char* buf, SIZE_T len);
     SIZE_T Fill();
