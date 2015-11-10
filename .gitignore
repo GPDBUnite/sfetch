@@ -6,3 +6,6 @@ a.out
 .DS_Store
 *~
 core.*
+tags
+TAGS
+*.cscope

@@ -57,12 +57,17 @@ int main(int argc, char const *argv[])
     int i = 0;
     BlockingBuffer *buf = NULL;
     char* data = (char*) malloc(4096);
+	if(!data) {
+		return NULL;
+	}
     size_t len;
     size_t totallen = 0;
 
     int fd = open("data.bin", O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
     if(fd == -1) {
         perror("create file error");
+		if(data)
+			free(data);
         return 1;
     }
     while(true) {

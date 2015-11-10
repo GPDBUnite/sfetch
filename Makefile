@@ -60,3 +60,9 @@ test: buildtest
 
 clean:
 	rm -f *.o $(app) $(testapp) *.a a.out
+
+tags:
+	@etags *.cpp *.h
+
+lint:
+	cppcheck *.cpp *.h

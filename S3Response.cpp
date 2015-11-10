@@ -36,8 +36,10 @@ BucketContent* BucketContent::CreateBucketContentItem(const char* key, uint64_t 
     if(!tmp)
         return NULL;
     BucketContent* ret = new BucketContent();
-    if(!ret)
+    if(!ret) {
+		free(tmp);
         return NULL;
+	}
     ret->key = tmp;
     ret->size = size;
     return ret;
