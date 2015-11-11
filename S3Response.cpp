@@ -159,6 +159,8 @@ ListBucket(const char* host, const char* bucket, const char* prefix, S3Credentia
 #define ASMAIN
 #ifdef ASMAIN
 #include <iostream>
+#include "spdlog/spdlog.h"
+
 int main()
 {
     S3Credential cred;
@@ -172,6 +174,9 @@ int main()
         BucketContent* p = *i;
         std::cout<<r->Name<<p->key<<": "<<p->size<<std::endl;
     }
+	auto console = spdlog::stdout_logger_mt("console");
+	console->info("An info message example {} ..", 1);
+	console->info() << "Streams are supported too  " << 2;
     delete r;
     return 0;
 }

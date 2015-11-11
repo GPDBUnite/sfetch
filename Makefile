@@ -2,8 +2,8 @@
 GTEST_DIR=gtest
 
 CPP=g++
-CFLAGS= -g -std=c++0x
-INCLUDES = -I. -I/usr/include/libxml2
+CFLAGS= -g -std=c++11
+INCLUDES = -I. -I/usr/include/libxml2 -Iinclude
 LDFLAGS=-lpthread -lcrypto -lcurl -lxml2
 
 sources = BlockingBuffer.cpp OffsetMgr.cpp URLParser.cpp utils.cpp http_parser.cpp \
@@ -59,11 +59,13 @@ test: buildtest
 
 
 clean:
-	rm -f *.o $(app) $(testapp) *.a a.out
+	rm -f *.o $(app) $(testapp) *.a a.out *.orig
 
 tags:
 	@etags *.cpp *.h
 
 lint:
-	cppcheck *.cpp *.h
-	astyle *.cpp *.h
+	cppcheck -v --enable=warning *.cpp *.h
+
+style:
+	astyle -s4 *.cpp *.h
