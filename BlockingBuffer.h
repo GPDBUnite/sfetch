@@ -12,13 +12,13 @@
 #include "OffsetMgr.h"
 #include <cstdint>
 
-typedef  uint64_t  SIZE_T;
+typedef  uint64_t  uint64_t;
 
 class BlockingBuffer
 {
 public:
     static BlockingBuffer* CreateBuffer(const char* url, OffsetMgr* o);
-    BlockingBuffer(const char* url, SIZE_T cap, OffsetMgr* o);
+    BlockingBuffer(const char* url, uint64_t cap, OffsetMgr* o);
     virtual ~BlockingBuffer();
     bool Init();
     bool EndOfFile() {
@@ -28,8 +28,8 @@ public:
         return this->error;
     };
 
-    SIZE_T Read(char* buf, SIZE_T len);
-    SIZE_T Fill();
+    uint64_t Read(char* buf, uint64_t len);
+    uint64_t Fill();
 
     static const int STATUS_EMPTY = 0;
     static const int STATUS_READY = 1;
@@ -37,16 +37,16 @@ public:
     /* data */
 protected:
     const char* sourceurl;
-    const SIZE_T bufcap;
-    virtual SIZE_T fetchdata(SIZE_T offset, char* data, SIZE_T len) = 0;
+    const uint64_t bufcap;
+    virtual uint64_t fetchdata(uint64_t offset, char* data, uint64_t len) = 0;
 private:
     int status;
     bool eof;
     bool error;
     pthread_mutex_t stat_mutex;
     pthread_cond_t   stat_cond;
-    SIZE_T readpos;
-    SIZE_T realsize;
+    uint64_t readpos;
+    uint64_t realsize;
     char* bufferdata;
     OffsetMgr* mgr;
     Range nextpos;

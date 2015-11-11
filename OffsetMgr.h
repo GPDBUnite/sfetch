@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <pthread.h>
 
-typedef  uint64_t  SIZE_T;
+typedef  uint64_t  uint64_t;
 
 struct Range
 {
@@ -16,12 +16,12 @@ struct Range
 
 class OffsetMgr {
 public:
-    OffsetMgr(SIZE_T maxsize, SIZE_T chunksize);
+    OffsetMgr(uint64_t maxsize, uint64_t chunksize);
     ~OffsetMgr() {
         pthread_mutex_destroy(&this->offset_lock);
     };
     Range NextOffset(); // ret.len == 0 means EOF
-    void Reset(SIZE_T n);
+    void Reset(uint64_t n);
 private:
     pthread_mutex_t offset_lock;
     size_t maxsize;

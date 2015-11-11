@@ -6,10 +6,10 @@
 class S3Fetcher : public HTTPFetcher
 {
 public:
-    S3Fetcher(const char* url, SIZE_T cap, OffsetMgr* o);
+    S3Fetcher(const char* url, uint64_t cap, OffsetMgr* o);
     ~S3Fetcher();
 protected:
-    virtual SIZE_T fetchdata(SIZE_T offset, char* data, SIZE_T len);
+    virtual uint64_t fetchdata(uint64_t offset, char* data, uint64_t len);
 
 private:
     bool SignV2();

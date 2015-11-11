@@ -38,7 +38,7 @@ int main(int argc, char const *argv[])
         printf("not enough parameters\n");
         return 1;
     }
-    SIZE_T filelen = atoll(argv[2]);
+    uint64_t filelen = atoll(argv[2]);
 
     /* code */
     //InitRB();

@@ -4,10 +4,12 @@
 #include "utils.h"
 #include "S3Fetcher.h"
 
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
 
-static SIZE_T WriterCallback(void *contents, SIZE_T size, SIZE_T nmemb, void *userp)
+static uint64_t WriterCallback(void *contents, uint64_t size, uint64_t nmemb, void *userp)
 {
-    SIZE_T realsize = size * nmemb;
+    uint64_t realsize = size * nmemb;
     Bufinfo *p = (Bufinfo*) userp;
     std::cout<<contents<<" "<<size<<" "<<nmemb<<" "<<userp<<std::endl;
     //std::cout<<"in writer"<<std::endl;
@@ -18,7 +20,7 @@ static SIZE_T WriterCallback(void *contents, SIZE_T size, SIZE_T nmemb, void *us
 }
 
 
-S3Fetcher::S3Fetcher(const char* url, SIZE_T cap, OffsetMgr* o)
+S3Fetcher::S3Fetcher(const char* url, uint64_t cap, OffsetMgr* o)
     :HTTPFetcher(url, cap, o)
 {
     curl_easy_setopt(this->curl, CURLOPT_WRITEFUNCTION, WriterCallback);
@@ -29,7 +31,7 @@ S3Fetcher::~S3Fetcher() {
 
 // buffer size should be at lease len
 // read len data from offest
-SIZE_T S3Fetcher::fetchdata(SIZE_T offset, char* data, SIZE_T len) {
+uint64_t S3Fetcher::fetchdata(uint64_t offset, char* data, uint64_t len) {
     if(len == 0)  return 0;
 
 RETRY:
@@ -47,7 +49,7 @@ RETRY:
 
     curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void *)&bi);
 
-    sprintf(rangebuf, "bytes=%lld-%lld", offset, offset + len - 1);
+    sprintf(rangebuf, "bytes=%" PRIu64 "-%" PRIu64, offset, offset + len - 1);
     this->AddHeaderField(RANGE, rangebuf);
 
     this->SignV2();

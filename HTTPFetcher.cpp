@@ -2,9 +2,12 @@
 #include <cstring>
 #include <sstream>
 
-static SIZE_T WriterCallback(void *contents, SIZE_T size, SIZE_T nmemb, void *userp)
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
+
+static uint64_t WriterCallback(void *contents, uint64_t size, uint64_t nmemb, void *userp)
 {
-    SIZE_T realsize = size * nmemb;
+    uint64_t realsize = size * nmemb;
     Bufinfo *p = (Bufinfo*) userp;
     //std::cout<<"in writer"<<std::endl;
     // assert p->len + realsize < p->maxsize
@@ -13,7 +16,7 @@ static SIZE_T WriterCallback(void *contents, SIZE_T size, SIZE_T nmemb, void *us
     return realsize;
 }
 
-HTTPFetcher::HTTPFetcher(const char* url, SIZE_T cap, OffsetMgr* o)
+HTTPFetcher::HTTPFetcher(const char* url, uint64_t cap, OffsetMgr* o)
     :BlockingBuffer(url, cap, o)
     ,urlparser(url)
 {
@@ -45,7 +48,7 @@ bool HTTPFetcher::AddHeaderField(HeaderField f, const char* v) {
 
 // buffer size should be at lease len
 // read len data from offest
-SIZE_T HTTPFetcher::fetchdata(SIZE_T offset, char* data, SIZE_T len) {
+uint64_t HTTPFetcher::fetchdata(uint64_t offset, char* data, uint64_t len) {
     if(len == 0)  return 0;
 
     Bufinfo bi;
@@ -62,7 +65,7 @@ SIZE_T HTTPFetcher::fetchdata(SIZE_T offset, char* data, SIZE_T len) {
 
     curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void *)&bi);
 
-    sprintf(rangebuf, "bytes=%lld-%lld", offset, offset + len - 1);
+    sprintf(rangebuf, "bytes=%" PRIu64 "-%" PRIu64, offset, offset + len - 1);
     this->AddHeaderField(RANGE, rangebuf);
 
 
@@ -84,7 +87,7 @@ SIZE_T HTTPFetcher::fetchdata(SIZE_T offset, char* data, SIZE_T len) {
     } else {
         curl_easy_getinfo (curl_handle, CURLINFO_RESPONSE_CODE, &res);
         if(! ((res == 200) || (res == 206)) ) {
-            fprintf(stderr, "%.*s", data, len);
+            fprintf(stderr, "%.*s", (int)len, data);
             bi.len = -1;
         }
     }

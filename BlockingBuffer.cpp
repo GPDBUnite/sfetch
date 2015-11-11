@@ -15,7 +15,7 @@
 //#define CHUNKSIZE   1233497
 
 
-BlockingBuffer::BlockingBuffer(const char* url, SIZE_T cap, OffsetMgr* o)
+BlockingBuffer::BlockingBuffer(const char* url, uint64_t cap, OffsetMgr* o)
     :sourceurl(url)
     ,bufcap(cap)
     ,readpos(0)
@@ -52,14 +52,14 @@ bool BlockingBuffer::Init() {
 
 
 // ret < len means EMPTY
-SIZE_T BlockingBuffer::Read(char* buf, SIZE_T len) {
+uint64_t BlockingBuffer::Read(char* buf, uint64_t len) {
     // assert buf not null
     // assert len > 0, len < this->bufcap
     pthread_mutex_lock(&this->stat_mutex);
     while (this->status == BlockingBuffer::STATUS_EMPTY) {
         pthread_cond_wait(&this->stat_cond, &this->stat_mutex);
     }
-    SIZE_T left_data_length = this->realsize - this->readpos;
+    uint64_t left_data_length = this->realsize - this->readpos;
     int length_to_read = std::min(len, left_data_length);
 
     memcpy(buf, this->bufferdata + this->readpos, length_to_read);
@@ -78,14 +78,14 @@ SIZE_T BlockingBuffer::Read(char* buf, SIZE_T len) {
     return length_to_read;
 }
 
-SIZE_T BlockingBuffer::Fill() {
+uint64_t BlockingBuffer::Fill() {
     // assert offset > 0, offset < this->bufcap
     pthread_mutex_lock(&this->stat_mutex);
     while (this->status == BlockingBuffer::STATUS_READY) {
         pthread_cond_wait(&this->stat_cond, &this->stat_mutex);
     }
-    SIZE_T offset = this->nextpos.offset;
-    SIZE_T leftlen = this->nextpos.len;
+    uint64_t offset = this->nextpos.offset;
+    uint64_t leftlen = this->nextpos.len;
     // assert this->status != BlockingBuffer::STATUS_READY
     int readlen = 0;
     this->realsize = 0;

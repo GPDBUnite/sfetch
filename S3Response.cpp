@@ -14,7 +14,7 @@ using std::stringstream;
 
 #include "utils.h"
 
-typedef uint64_t SIZE_T;
+typedef uint64_t uint64_t;
 
 //CreateBucketContentItem
 BucketContent::~BucketContent() {
@@ -52,9 +52,9 @@ struct XMLInfo {
 
 
 //void S3fetch_curl(const char* url, )
-static SIZE_T ParserCallback(void *contents, SIZE_T size, SIZE_T nmemb, void *userp)
+static uint64_t ParserCallback(void *contents, uint64_t size, uint64_t nmemb, void *userp)
 {
-    SIZE_T realsize = size * nmemb;
+    uint64_t realsize = size * nmemb;
     int res;
     //printf("%.*s",realsize, (char*)contents);
     struct XMLInfo *pxml = (struct XMLInfo*)userp;

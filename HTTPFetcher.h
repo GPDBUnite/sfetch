@@ -52,20 +52,20 @@ struct Bufinfo
 {
     /* data */
     char* buf;
-    SIZE_T maxsize;
-    SIZE_T len;
+    uint64_t maxsize;
+    uint64_t len;
 };
 
 
 class HTTPFetcher : public BlockingBuffer
 {
 public:
-    HTTPFetcher(const char* url, SIZE_T cap, OffsetMgr* o);
+    HTTPFetcher(const char* url, uint64_t cap, OffsetMgr* o);
     ~HTTPFetcher();
     bool SetMethod(Method m);
     bool AddHeaderField(HeaderField f, const char* v);
 protected:
-    virtual SIZE_T fetchdata(SIZE_T offset, char* data, SIZE_T len);
+    virtual uint64_t fetchdata(uint64_t offset, char* data, uint64_t len);
     CURL *curl;
     Method method;
     std::map<HeaderField, std::string> fields;
