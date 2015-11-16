@@ -42,8 +42,7 @@ bool HTTPFetcher::AddHeaderField(HeaderField f, const char* v) {
         // log warning
         return false;
     }
-    this->fields[f] = std::string(v);
-    return true;
+    return this->headers.Add(f, v);
 }
 
 // buffer size should be at lease len
@@ -57,29 +56,21 @@ uint64_t HTTPFetcher::fetchdata(uint64_t offset, char* data, uint64_t len) {
     bi.len = 0;
 
     CURL *curl_handle = this->curl;
-    CURLcode res;
-    struct curl_slist *chunk = NULL;
+
     char rangebuf[128];
 
     curl_easy_setopt(curl_handle, CURLOPT_URL, this->sourceurl);
-
     curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void *)&bi);
 
     sprintf(rangebuf, "bytes=%" PRIu64 "-%" PRIu64, offset, offset + len - 1);
     this->AddHeaderField(RANGE, rangebuf);
 
+	this->processheader();
 
-    std::map<HeaderField, std::string>::iterator it;
-    for(it = this->fields.begin(); it != this->fields.end(); it++) {
-        std::stringstream sstr;
-        sstr<<GetFieldString(it->first)<<": "<<it->second;
-        std::cout<<sstr.str().c_str()<<std::endl;
-        chunk = curl_slist_append(chunk, sstr.str().c_str());
-    }
+	struct curl_slist *chunk = this->headers.GetList();
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
 
-    res = curl_easy_perform(curl_handle);
-
+    CURLcode res = curl_easy_perform(curl_handle);
     if(res != CURLE_OK) {
         fprintf(stderr, "curl_easy_perform() failed: %s\n",
                 curl_easy_strerror(res));

@@ -65,11 +65,13 @@ public:
     bool SetMethod(Method m);
     bool AddHeaderField(HeaderField f, const char* v);
 protected:
-    virtual uint64_t fetchdata(uint64_t offset, char* data, uint64_t len);
+    uint64_t fetchdata(uint64_t offset, char* data, uint64_t len);
+	virtual bool processheader(){return true;};
     CURL *curl;
     Method method;
-    std::map<HeaderField, std::string> fields;
+    HeaderContent headers;
     UrlParser urlparser;
+	
 };
 
 
