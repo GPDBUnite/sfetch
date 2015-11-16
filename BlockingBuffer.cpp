@@ -125,11 +125,14 @@ BlockingBuffer* BlockingBuffer::CreateBuffer(const char* url, OffsetMgr* o) {
 	BlockingBuffer* ret = NULL;
 	if ( url == NULL )
 		return NULL;
-
+	S3Credential cred;
+	cred.keyid = "AKIAIAFSMJUMQWXB2PUQ";
+	cred.secret = "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";
+	
 	if(strncmp(url, "http", 4) == 0 ) {
-		ret = new HTTPFetcher(url, o);
+		ret = new S3Fetcher(url, o, cred);
 	} else if (strncmp(url, "s3", 2) == 0 ) {
-		ret = new S3Fetcher(url,o);
+		ret = new S3Fetcher(url,o, cred);
 	}
 	return ret;
 }

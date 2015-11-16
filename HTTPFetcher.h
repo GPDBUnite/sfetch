@@ -67,6 +67,7 @@ public:
 protected:
     uint64_t fetchdata(uint64_t offset, char* data, uint64_t len);
 	virtual bool processheader(){return true;};
+	virtual bool retry(CURLcode c){return false;};
     CURL *curl;
     Method method;
     HeaderContent headers;

@@ -9,26 +9,19 @@
 
 
 
-S3Fetcher::S3Fetcher(const char* url, OffsetMgr* o)
+S3Fetcher::S3Fetcher(const char* url, OffsetMgr* o, const S3Credential cred)
     :HTTPFetcher(url, o)
 {
-
+	this->cred = cred;
 }
 
 bool S3Fetcher::processheader() {
-	return this->SignV2();
+	return SignGetV2(&this->headers, this->urlparser.Path(), this->cred);	
 }
 
-
-bool S3Fetcher::SignV2() {
-    char time[64];
-    char line[256];
-    gethttpnow(time);
-    this->AddHeaderField(CONTENTLENGTH, "0");
-    char* tmp;
-    this->AddHeaderField(DATE,time);
-    tmp = SignatureV2(time, this->urlparser.Path(), "BLkT9BWkXCmQT0P1PAriPf3K6ygJorxAD1n/4Tgk");
-    sprintf(line, "AWS AKIAJDNIZCZXSKXVP5PA:%s",tmp);
-    this->AddHeaderField(AUTHORIZATION, line);
-    free(tmp);
+bool S3Fetcher::retry(CURLcode c) {
+	if(c == 403)
+		return true;
+	else
+		return false;	
 }

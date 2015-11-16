@@ -3,17 +3,19 @@
 
 #include "HTTPFetcher.h"
 
+#include "S3Common.h"
+
+
 class S3Fetcher : public HTTPFetcher
 {
 public:
-    S3Fetcher(const char* url, OffsetMgr* o);
+    S3Fetcher(const char* url, OffsetMgr* o,const S3Credential cred);
     ~S3Fetcher(){};
 protected:
     virtual bool processheader();
-
-private:
-    bool SignV2();
+	virtual bool retry(CURLcode c);
+ private:
+	S3Credential cred;
 };
-
 
 #endif // __S3FETCHER__

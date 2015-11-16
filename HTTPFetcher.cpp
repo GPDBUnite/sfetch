@@ -50,6 +50,7 @@ bool HTTPFetcher::AddHeaderField(HeaderField f, const char* v) {
 uint64_t HTTPFetcher::fetchdata(uint64_t offset, char* data, uint64_t len) {
     if(len == 0)  return 0;
 
+ RETRY:
     Bufinfo bi;
     bi.buf = data;
     bi.maxsize = len;
@@ -77,6 +78,8 @@ uint64_t HTTPFetcher::fetchdata(uint64_t offset, char* data, uint64_t len) {
         bi.len = -1;
     } else {
         curl_easy_getinfo (curl_handle, CURLINFO_RESPONSE_CODE, &res);
+		if(this->retry(res))
+			goto RETRY;
         if(! ((res == 200) || (res == 206)) ) {
             fprintf(stderr, "%.*s", (int)len, data);
             bi.len = -1;
