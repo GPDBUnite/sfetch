@@ -8,7 +8,7 @@ LDFLAGS=-lpthread -lcrypto -lcurl -lxml2
 
 sources = BlockingBuffer.cpp OffsetMgr.cpp URLParser.cpp utils.cpp http_parser.cpp \
     main.cpp HTTPFetcher.cpp S3Fetcher.cpp HTTPCommon.cpp S3Response.cpp S3Common.cpp
-testcources = utils_test.cpp
+testcources = utils_test.cpp OffsetMgr_test.cpp URLParser_test.cpp http_parser.cpp
 
 
 objects = $(sources:.cpp=.o) 

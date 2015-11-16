@@ -29,7 +29,7 @@ BucketContent::BucketContent()
 {
 }
 
-BucketContent* BucketContent::CreateBucketContentItem(const char* key, uint64_t size) {
+BucketContent* CreateBucketContentItem(const char* key, uint64_t size) {
     if(!key)
         return NULL;
     const char* tmp = strdup(key);
@@ -136,18 +136,24 @@ ListBucket(const char* host, const char* bucket, const char* prefix, S3Credentia
 
         if(!xmlStrcmp(cur->name, (const xmlChar *)"Contents")) {
             xmlNodePtr contNode = cur->xmlChildrenNode;
-            BucketContent* item = new BucketContent();
+            const char* key;
+			uint64_t size;
             while(contNode != NULL) {
                 if(!xmlStrcmp(contNode->name, (const xmlChar *)"Key")) {
-                    item->key = (const char*)xmlNodeGetContent(contNode);
+                    key = (const char*)xmlNodeGetContent(contNode);
                 }
                 if(!xmlStrcmp(contNode->name, (const xmlChar *)"Size")) {
                     xmlChar* v = xmlNodeGetContent(contNode);
-                    item->size = atoll((const char*)v);
+                    size = atoll((const char*)v);
                 }
                 contNode = contNode->next;
             }
-            result->contents.push_back(item);
+			BucketContent *item = CreateBucketContentItem(key, size);
+			if(item)
+				result->contents.push_back(item);
+			else {
+				// log error here
+			}
         }
         cur = cur->next;
     }
@@ -172,7 +178,7 @@ int main()
     vector<BucketContent*>::iterator i;
     for( i = r->contents.begin(); i != r->contents.end(); i++ ) {
         BucketContent* p = *i;
-        std::cout<<r->Name<<p->key<<": "<<p->size<<std::endl;
+        std::cout<<r->Name<<p->Key()<<": "<<p->Size()<<std::endl;
     }
 	auto console = spdlog::stdout_logger_mt("console");
 	console->info("An info message example {} ..", 1);

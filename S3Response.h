@@ -17,14 +17,23 @@ struct ListBucketResult
     vector<BucketContent*> contents;
 };
 
+BucketContent* CreateBucketContentItem(const char* key, uint64_t size);
+
 struct BucketContent
 {
+	friend BucketContent* CreateBucketContentItem(const char* key, uint64_t size);    
+    BucketContent();
+    ~BucketContent();
+	const char* Key(){return this->key;};
+	uint64_t Size(){return this->size;};
+private:
+	BucketContent(const BucketContent& b){};
+	BucketContent operator=(const BucketContent& b){};
+
     const char* key;
     //const char* etags;
     uint64_t size;
-    static BucketContent* CreateBucketContentItem(const char* key, uint64_t size);
-    BucketContent();
-    ~BucketContent();
+	
 };
 
 ListBucketResult*  ListBucket(const char* bucket, const char* path, S3Credential &cred);

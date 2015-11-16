@@ -26,7 +26,12 @@ TEST(signature, v2) {
 
 }
 
-
-TEST(signature, v4) {
-
+#include <curl/curl.h>
+TEST(curl, init) {
+	
+	CURL* c = CreateCurlHandler(NULL);
+	EXPECT_EQ(c, (void*)NULL);
+	c =  CreateCurlHandler("www.google.com");
+	EXPECT_NE(c, (void*)NULL);
+	curl_easy_cleanup(c);
 }

@@ -22,7 +22,7 @@ UrlParser::UrlParser(const char* url)
         printf("Parse error : %d\n", result);
         return;
     }
-    std::cout<<u.field_set<<std::endl;
+    //std::cout<<u.field_set<<std::endl;
     this->host = extract_field(&u,UF_HOST);
     this->schema = extract_field(&u,UF_SCHEMA);
     this->path = extract_field(&u,UF_PATH);
@@ -50,18 +50,3 @@ char* UrlParser::extract_field(const struct http_parser_url *u, http_parser_url_
     }
     return ret;
 }
-
-
-// int main(int argc, char* argv[]) {
-// 	if(argc < 2) {
-// 		std::cout<<"not enough args\n";
-// 		return 1;
-// 	}
-// 	UrlParser* p = new UrlParser(argv[1]);
-// 	std::cout<<(char*)NULL<<std::endl;
-// 	std::cout<<p->Schema()<<std::endl;
-// 	std::cout<<p->Host()<<std::endl;
-// 	std::cout<<p->Path()<<std::endl;
-// 	delete p;
-// 	return 0;
-// }
