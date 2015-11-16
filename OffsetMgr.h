@@ -23,6 +23,7 @@ public:
     Range NextOffset(); // ret.len == 0 means EOF
     void Reset(uint64_t n);
 	uint64_t Chunksize() {return this->chunksize;};
+	uint64_t Size() { return this->maxsize;};
 private:
     pthread_mutex_t offset_lock;
     uint64_t maxsize;

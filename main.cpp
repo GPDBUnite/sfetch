@@ -1,13 +1,7 @@
 #include "BlockingBuffer.h"
 #include <pthread.h>
 
-#define PARALLELNUM 8
-//#define CHUNKSIZE   7*1034*125
-#define CHUNKSIZE   64*1024*1024
-//#define CHUNKSIZE   1233434
-
 void* DownloadThreadfunc(void* data) {
-
     BlockingBuffer* buffer = (BlockingBuffer*)data;
     size_t filled_size = 0;
     void* pp = (void*)pthread_self();
@@ -34,6 +28,76 @@ void* DownloadThreadfunc(void* data) {
 #ifdef ASMAIN
 
 
+struct fetcher {
+	fetcher(uint8_t part_num);
+	~fetcher();
+	bool init(const char* url, uint64_t size, uint64_t chunksize);
+	bool get(char* buf, uint64_t& len);
+	void destroy();
+	//reset
+	// init(url)
+private:
+	const uint8_t num;
+	pthread_t* threads;
+	BlockingBuffer** buffers;
+	OffsetMgr* o;
+	uint8_t chunkcount;
+	uint64_t readlen;
+};
+
+fetcher::fetcher(uint8_t part_num) 
+	:num(part_num)
+{
+	this->threads = (pthread_t*) malloc(num * sizeof(pthread_t));
+	this->buffers = (BlockingBuffer**) malloc (num * sizeof(BlockingBuffer*));
+}
+
+bool fetcher::init(const char* url, uint64_t size, uint64_t chunksize) {
+	this->o = new OffsetMgr(size, chunksize);
+	for(int i = 0; i < this->num; i++) {
+		this->buffers[i] = BlockingBuffer::CreateBuffer(url, o);
+		if(!this->buffers[i]->Init()) {
+			std::cerr<<"init fail"<<std::endl;
+		}
+		pthread_create(&this->threads[i], NULL, DownloadThreadfunc, this->buffers[i]);
+	}
+	readlen = 0;
+	chunkcount = 0;
+}
+
+bool fetcher::get(char* data, uint64_t& len) {
+	uint64_t filelen = this->o->Size();
+	BlockingBuffer* buf = buffers[this->chunkcount % this->num];
+	uint64_t tmplen = buf->Read(data, len);
+    this->readlen += tmplen;
+	if(tmplen < len) {
+		this->chunkcount++;
+		if(buf->Error()) {
+			len = tmplen;
+			return false;
+		}
+	}
+	if(this->readlen ==  filelen) {
+		if(buf->EndOfFile())
+			return false;
+	}
+	return true;
+}
+
+void fetcher::destroy() {
+    for(int i = 0; i < this->num; i++) {
+        pthread_join(this->threads[i],NULL);
+		delete this->buffers[i];
+				
+    }
+	delete this->o;
+}
+
+fetcher::~fetcher() {
+	free(this->threads);
+	free(this->buffers);
+}
+
 int main(int argc, char const *argv[])
 {
     // filepath and file length
@@ -41,30 +105,15 @@ int main(int argc, char const *argv[])
         printf("not enough parameters\n");
         return 1;
     }
-    uint64_t filelen = atoll(argv[2]);
+    uint64_t len = atoll(argv[2]);
 
     /* code */
-    //InitRB();
-    //InitOffset(601882624, CHUNKSIZE);
-    pthread_t threads[PARALLELNUM];
-    BlockingBuffer* buffers[PARALLELNUM];
-    OffsetMgr* o = new OffsetMgr(filelen,CHUNKSIZE);
-    for(int i = 0; i < PARALLELNUM; i++) {
-        // Create
-        buffers[i] = BlockingBuffer::CreateBuffer(argv[1], o);
-        if(!buffers[i]->Init())
-            std::cerr<<"init fail"<<std::endl;
-        pthread_create(&threads[i], NULL, DownloadThreadfunc, buffers[i]);
-    }
-
-    int i = 0;
-    BlockingBuffer *buf = NULL;
+	fetcher* f = new fetcher(8);
+	f->init(argv[1], len, 64 * 1024 * 1024);
     char* data = (char*) malloc(4096);
     if(!data) {
         return 0;
     }
-    size_t len;
-    size_t totallen = 0;
 
     int fd = open("data.bin", O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
     if(fd == -1) {
@@ -73,33 +122,17 @@ int main(int argc, char const *argv[])
             free(data);
         return 1;
     }
-    while(true) {
-        buf = buffers[i%PARALLELNUM];
-        len = buf->Read(data, 4096);
-
+    while(f->get(data, len)) {
         write(fd, data, len);
-        totallen += len;
-        if(len < 4096) {
-            i++;
-            if(buf->Error())
-                break;
-        }
-        if(totallen ==  filelen) {
-            if(buf->EndOfFile())
-                break;
-        }
     }
+	if(len > 0)
+		write(fd, data, len);
     std::cout<<"exiting"<<std::endl;
     free(data);
-    for(i = 0; i < PARALLELNUM; i++) {
-        pthread_join(threads[i],NULL);
-    }
-    for(i = 0; i < PARALLELNUM; i++) {
-        delete buffers[i];
-    }
     close(fd);
-    delete o;
+	f->destroy();
+	delete f;
     return 0;
-}
+} 
 
 #endif // ASMAIN
