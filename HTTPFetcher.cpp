@@ -16,8 +16,8 @@ static uint64_t WriterCallback(void *contents, uint64_t size, uint64_t nmemb, vo
     return realsize;
 }
 
-HTTPFetcher::HTTPFetcher(const char* url, uint64_t cap, OffsetMgr* o)
-    :BlockingBuffer(url, cap, o)
+HTTPFetcher::HTTPFetcher(const char* url, OffsetMgr* o)
+    :BlockingBuffer(url, o)
     ,urlparser(url)
 {
     this->curl = curl_easy_init();

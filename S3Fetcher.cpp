@@ -20,8 +20,8 @@ static uint64_t WriterCallback(void *contents, uint64_t size, uint64_t nmemb, vo
 }
 
 
-S3Fetcher::S3Fetcher(const char* url, uint64_t cap, OffsetMgr* o)
-    :HTTPFetcher(url, cap, o)
+S3Fetcher::S3Fetcher(const char* url, OffsetMgr* o)
+    :HTTPFetcher(url, o)
 {
     curl_easy_setopt(this->curl, CURLOPT_WRITEFUNCTION, WriterCallback);
 }

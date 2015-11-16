@@ -9,15 +9,8 @@
 #include "S3Fetcher.h"
 
 
-//#define PARALLELNUM 5
-//#define CHUNKSIZE   7*1034*125
-#define CHUNKSIZE   64*1024*1024
-//#define CHUNKSIZE   1233497
-
-
-BlockingBuffer::BlockingBuffer(const char* url, uint64_t cap, OffsetMgr* o)
+BlockingBuffer::BlockingBuffer(const char* url, OffsetMgr* o)
     :sourceurl(url)
-    ,bufcap(cap)
     ,readpos(0)
     ,realsize(0)
     ,status(BlockingBuffer::STATUS_EMPTY)
@@ -26,6 +19,7 @@ BlockingBuffer::BlockingBuffer(const char* url, uint64_t cap, OffsetMgr* o)
     ,error(false)
 {
     this->nextpos = o->NextOffset();
+	this->bufcap = o->Chunksize();
 }
 
 BlockingBuffer::~BlockingBuffer() {
@@ -128,5 +122,5 @@ uint64_t BlockingBuffer::Fill() {
 
 
 BlockingBuffer* BlockingBuffer::CreateBuffer(const char* url, OffsetMgr* o) {
-    return url == NULL ? NULL : new S3Fetcher(url, CHUNKSIZE, o);
+    return url == NULL ? NULL : new S3Fetcher(url,o);
 }

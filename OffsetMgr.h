@@ -10,8 +10,8 @@ typedef  uint64_t  uint64_t;
 struct Range
 {
     /* data */
-    size_t offset;
-    size_t len;
+    uint64_t offset;
+    uint64_t len;
 };
 
 class OffsetMgr {
@@ -22,11 +22,12 @@ public:
     };
     Range NextOffset(); // ret.len == 0 means EOF
     void Reset(uint64_t n);
+	uint64_t Chunksize() {return this->chunksize;};
 private:
     pthread_mutex_t offset_lock;
-    size_t maxsize;
-    size_t chunksize;
-    size_t curpos;
+    uint64_t maxsize;
+    uint64_t chunksize;
+    uint64_t curpos;
 };
 
 #endif //_OFFSET_MANAGER_

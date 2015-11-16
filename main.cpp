@@ -29,7 +29,10 @@ void* DownloadThreadfunc(void* data) {
     return NULL;
 }
 
+#define ASMAIN
+
 #ifdef ASMAIN
+
 
 int main(int argc, char const *argv[])
 {
@@ -58,7 +61,7 @@ int main(int argc, char const *argv[])
     BlockingBuffer *buf = NULL;
     char* data = (char*) malloc(4096);
     if(!data) {
-        return NULL;
+        return 0;
     }
     size_t len;
     size_t totallen = 0;

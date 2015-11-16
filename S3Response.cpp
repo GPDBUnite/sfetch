@@ -162,7 +162,8 @@ ListBucket(const char* host, const char* bucket, const char* prefix, S3Credentia
     xmlFreeParserCtxt(xmlcontext);
     return result;
 }
-#define ASMAIN
+
+//#define ASMAIN
 #ifdef ASMAIN
 #include <iostream>
 #include "spdlog/spdlog.h"

@@ -18,7 +18,7 @@ class BlockingBuffer
 {
 public:
     static BlockingBuffer* CreateBuffer(const char* url, OffsetMgr* o);
-    BlockingBuffer(const char* url, uint64_t cap, OffsetMgr* o);
+    BlockingBuffer(const char* url,OffsetMgr* o);
     virtual ~BlockingBuffer();
     bool Init();
     bool EndOfFile() {
@@ -37,7 +37,7 @@ public:
     /* data */
 protected:
     const char* sourceurl;
-    const uint64_t bufcap;
+    uint64_t bufcap;
     virtual uint64_t fetchdata(uint64_t offset, char* data, uint64_t len) = 0;
 private:
     int status;

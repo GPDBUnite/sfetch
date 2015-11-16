@@ -60,7 +60,7 @@ struct Bufinfo
 class HTTPFetcher : public BlockingBuffer
 {
 public:
-    HTTPFetcher(const char* url, uint64_t cap, OffsetMgr* o);
+    HTTPFetcher(const char* url, OffsetMgr* o);
     ~HTTPFetcher();
     bool SetMethod(Method m);
     bool AddHeaderField(HeaderField f, const char* v);
