@@ -55,7 +55,7 @@ fetcher::fetcher(uint8_t part_num)
 bool fetcher::init(const char* url, uint64_t size, uint64_t chunksize) {
 	this->o = new OffsetMgr(size, chunksize);
 	for(int i = 0; i < this->num; i++) {
-		this->buffers[i] = BlockingBuffer::CreateBuffer(url, o);
+		this->buffers[i] = BlockingBuffer::CreateBuffer(url, o);  // decide buffer according to url
 		if(!this->buffers[i]->Init()) {
 			std::cerr<<"init fail"<<std::endl;
 		}
@@ -72,8 +72,8 @@ bool fetcher::get(char* data, uint64_t& len) {
     this->readlen += tmplen;
 	if(tmplen < len) {
 		this->chunkcount++;
+		len = tmplen;
 		if(buf->Error()) {
-			len = tmplen;
 			return false;
 		}
 	}
@@ -114,7 +114,7 @@ int main(int argc, char const *argv[])
     if(!data) {
         return 0;
     }
-
+	len     = 4096;
     int fd = open("data.bin", O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
     if(fd == -1) {
         perror("create file error");
@@ -124,6 +124,7 @@ int main(int argc, char const *argv[])
     }
     while(f->get(data, len)) {
         write(fd, data, len);
+		len = 4096;
     }
 	if(len > 0)
 		write(fd, data, len);

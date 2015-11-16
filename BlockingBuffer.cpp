@@ -122,5 +122,14 @@ uint64_t BlockingBuffer::Fill() {
 
 
 BlockingBuffer* BlockingBuffer::CreateBuffer(const char* url, OffsetMgr* o) {
-    return url == NULL ? NULL : new S3Fetcher(url,o);
+	BlockingBuffer* ret = NULL;
+	if ( url == NULL )
+		return NULL;
+
+	if(strncmp(url, "http", 4) == 0 ) {
+		ret = new HTTPFetcher(url, o);
+	} else if (strncmp(url, "s3", 2) == 0 ) {
+		ret = new S3Fetcher(url,o);
+	}
+	return ret;
 }

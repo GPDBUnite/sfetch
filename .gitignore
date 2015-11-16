@@ -5,8 +5,8 @@ sfetch_test
 a.out
 .DS_Store
 *~
-core.*
 tags
 TAGS
 *.cscope
 *.orig
+core*
