@@ -11,13 +11,14 @@
 
 #include "OffsetMgr.h"
 #include <cstdint>
+#include "S3Common.h"
 
 typedef  uint64_t  uint64_t;
 
 class BlockingBuffer
 {
 public:
-    static BlockingBuffer* CreateBuffer(const char* url, OffsetMgr* o);
+    static BlockingBuffer* CreateBuffer(const char* url, OffsetMgr* o, S3Credential* pcred);
     BlockingBuffer(const char* url,OffsetMgr* o);
     virtual ~BlockingBuffer();
     bool Init();
@@ -51,6 +52,25 @@ private:
     OffsetMgr* mgr;
     Range nextpos;
 };
+
+
+struct Downloader {
+	Downloader(uint8_t part_num);
+	~Downloader();
+	bool init(const char* url, uint64_t size, uint64_t chunksize, S3Credential* pcred);
+	bool get(char* buf, uint64_t& len);
+	void destroy();
+	//reset
+	// init(url)
+private:
+	const uint8_t num;
+	pthread_t* threads;
+	BlockingBuffer** buffers;
+	OffsetMgr* o;
+	uint8_t chunkcount;
+	uint64_t readlen;
+};
+
 
 #endif//__BLOCKINH_BUFFER_
 

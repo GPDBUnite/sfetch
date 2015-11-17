@@ -24,8 +24,8 @@ struct BucketContent
 	friend BucketContent* CreateBucketContentItem(const char* key, uint64_t size);    
     BucketContent();
     ~BucketContent();
-	const char* Key(){return this->key;};
-	uint64_t Size(){return this->size;};
+	const char* Key() const {return this->key;};
+	uint64_t Size() const {return this->size;};
 private:
 	BucketContent(const BucketContent& b){};
 	BucketContent operator=(const BucketContent& b){};
@@ -36,6 +36,9 @@ private:
 	
 };
 
-ListBucketResult*  ListBucket(const char* bucket, const char* path, S3Credential &cred);
+// need free
+ListBucketResult*  ListBucket(const char* host, const char* bucket, const char* path, S3Credential &cred);
+
+//bool BucketContentComp(const BucketContent& a,const BucketContent& b);
 
 #endif // __S3RESPONSE_H_

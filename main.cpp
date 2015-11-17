@@ -1,102 +1,73 @@
 #include "BlockingBuffer.h"
-#include <pthread.h>
+#include "S3Response.h"
 
-void* DownloadThreadfunc(void* data) {
-    BlockingBuffer* buffer = (BlockingBuffer*)data;
-    size_t filled_size = 0;
-    void* pp = (void*)pthread_self();
-    // assert offset > 0
-    do {
-        filled_size = buffer->Fill();
-        std::cout<<"Fillsize is "<<filled_size<<" of "<<pp<<std::endl;
-        if(buffer->EndOfFile())
-            break;
-        if (filled_size == -1) { // Error
-            // retry?
-            if(buffer->Error()) {
-                break;
-            } else
-                continue;
-        }
-    } while(1);
-    std::cout<<"quit\n";
-    return NULL;
-}
+
+//#define ASMAIN
 
 #define ASMAIN
-
 #ifdef ASMAIN
+#include <iostream>
+#include "spdlog/spdlog.h"
 
+void printdata(const char* url, uint64_t len, S3Credential* pcred);
 
-struct fetcher {
-	fetcher(uint8_t part_num);
-	~fetcher();
-	bool init(const char* url, uint64_t size, uint64_t chunksize);
-	bool get(char* buf, uint64_t& len);
-	void destroy();
-	//reset
-	// init(url)
-private:
-	const uint8_t num;
-	pthread_t* threads;
-	BlockingBuffer** buffers;
-	OffsetMgr* o;
-	uint8_t chunkcount;
-	uint64_t readlen;
-};
-
-fetcher::fetcher(uint8_t part_num) 
-	:num(part_num)
+int main()
 {
-	this->threads = (pthread_t*) malloc(num * sizeof(pthread_t));
-	this->buffers = (BlockingBuffer**) malloc (num * sizeof(BlockingBuffer*));
-}
+    S3Credential cred;
+    cred.keyid = "AKIAIAFSMJUMQWXB2PUQ";
+    cred.secret = "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";
 
-bool fetcher::init(const char* url, uint64_t size, uint64_t chunksize) {
-	this->o = new OffsetMgr(size, chunksize);
-	for(int i = 0; i < this->num; i++) {
-		this->buffers[i] = BlockingBuffer::CreateBuffer(url, o);  // decide buffer according to url
-		if(!this->buffers[i]->Init()) {
-			std::cerr<<"init fail"<<std::endl;
-		}
-		pthread_create(&this->threads[i], NULL, DownloadThreadfunc, this->buffers[i]);
-	}
-	readlen = 0;
-	chunkcount = 0;
-}
+	const char* bucket = "metro.pivotal.io";
+	const char* prefix = "data";
+	const char* region = "us-west-2";
 
-bool fetcher::get(char* data, uint64_t& len) {
-	uint64_t filelen = this->o->Size();
-	BlockingBuffer* buf = buffers[this->chunkcount % this->num];
-	uint64_t tmplen = buf->Read(data, len);
-    this->readlen += tmplen;
-	if(tmplen < len) {
-		this->chunkcount++;
-		len = tmplen;
-		if(buf->Error()) {
-			return false;
-		}
-	}
-	if(this->readlen ==  filelen) {
-		if(buf->EndOfFile())
-			return false;
-	}
-	return true;
-}
+	int segid = 3;
+	int total_segs = 4;
+		
+    ListBucketResult* r = ListBucket("s3-us-west-2.amazonaws.com", bucket, prefix, cred);
 
-void fetcher::destroy() {
-    for(int i = 0; i < this->num; i++) {
-        pthread_join(this->threads[i],NULL);
-		delete this->buffers[i];
-				
+	char urlbuf[256];
+
+    vector<BucketContent*>::iterator i;
+    for( i = r->contents.begin(); i != r->contents.end(); i++ ) {
+        BucketContent* p = *i;
+		sprintf(urlbuf, "http://s3-us-west-2.amazonaws.com/%s/%s", bucket,p->Key());
+		printdata(urlbuf, p->Size(), &cred);
     }
-	delete this->o;
+
+    delete r;
+    return 0;
 }
 
-fetcher::~fetcher() {
-	free(this->threads);
-	free(this->buffers);
+
+#endif // ASMAIN
+
+
+
+void printdata(const char* url, uint64_t len, S3Credential* pcred) {
+	/* code */
+	Downloader* f = new Downloader(4);
+	f->init(url, len, 1 * 1024 * 1024, pcred);
+    char* data = (char*) malloc(4096);
+    if(!data) {
+        return;
+    }
+	len     = 4096;
+
+    while(f->get(data, len)) {
+		fprintf(stdout, "%.*s", (int)len, data);
+		len = 4096;
+    }
+	if(len > 0)
+		fprintf(stdout, "%.*s", (int)len, data);
+
+    free(data);
+	f->destroy();
+	delete f;
 }
+
+
+#if 0
 
 int main(int argc, char const *argv[])
 {
@@ -108,7 +79,7 @@ int main(int argc, char const *argv[])
     uint64_t len = atoll(argv[2]);
 
     /* code */
-	fetcher* f = new fetcher(8);
+	Downloader* f = new Downloader(8);
 	f->init(argv[1], len, 64 * 1024 * 1024);
     char* data = (char*) malloc(4096);
     if(!data) {

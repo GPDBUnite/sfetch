@@ -1,8 +1,9 @@
 #include "S3Response.h"
 #include "HTTPCommon.h"
 #include <sstream>
-
+#include<algorithm>
 using std::stringstream;
+using std::sort;
 
 #include <cstring>
 #include <cstdlib>
@@ -90,8 +91,8 @@ xmlParserCtxtPtr DoGetXML(const char* host, const char* bucket, const char* url,
     HeaderContent* header = new HeaderContent();
     sstr<<bucket<<".s3.amazonaws.com";
     header->Add(HOST, host);
-
-    SignGetV2(header, "/metro.pivotal.io", cred);
+	UrlParser p(url);
+    SignGetV2(header, p.Path(), cred);
 
     struct curl_slist * chunk = header->GetList();
 
@@ -108,6 +109,13 @@ xmlParserCtxtPtr DoGetXML(const char* host, const char* bucket, const char* url,
 
     return xml.ctxt;
 }
+
+
+bool BucketContentComp(BucketContent* a,BucketContent* b)
+{
+    return strcmp(a->Key(), b->Key()) > 0;
+}
+
 
 ListBucketResult*
 ListBucket(const char* host, const char* bucket, const char* prefix, S3Credential &cred) {
@@ -160,33 +168,8 @@ ListBucket(const char* host, const char* bucket, const char* prefix, S3Credentia
 
     /* always cleanup */
     xmlFreeParserCtxt(xmlcontext);
+	sort(result->contents.begin(), result->contents.end(), BucketContentComp);
+
     return result;
 }
 
-//#define ASMAIN
-#ifdef ASMAIN
-#include <iostream>
-#include "spdlog/spdlog.h"
-
-int main()
-{
-    S3Credential cred;
-    cred.keyid = "AKIAIAFSMJUMQWXB2PUQ";
-    cred.secret = "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";
-
-    ListBucketResult* r = ListBucket("s3-us-west-2.amazonaws.com", "metro.pivotal.io", "data", cred);
-
-    vector<BucketContent*>::iterator i;
-    for( i = r->contents.begin(); i != r->contents.end(); i++ ) {
-        BucketContent* p = *i;
-        std::cout<<r->Name<<p->Key()<<": "<<p->Size()<<std::endl;
-    }
-	auto console = spdlog::stdout_logger_mt("console");
-	console->info("An info message example {} ..", 1);
-	console->info() << "Streams are supported too  " << 2;
-    delete r;
-    return 0;
-}
-
-
-#endif // ASMAIN

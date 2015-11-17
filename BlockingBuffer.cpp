@@ -121,18 +121,100 @@ uint64_t BlockingBuffer::Fill() {
 }
 
 
-BlockingBuffer* BlockingBuffer::CreateBuffer(const char* url, OffsetMgr* o) {
+BlockingBuffer* BlockingBuffer::CreateBuffer(const char* url, OffsetMgr* o, S3Credential* pcred) {
 	BlockingBuffer* ret = NULL;
 	if ( url == NULL )
 		return NULL;
-	S3Credential cred;
-	cred.keyid = "AKIAIAFSMJUMQWXB2PUQ";
-	cred.secret = "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";
-	
-	if(strncmp(url, "http", 4) == 0 ) {
+
+	if(pcred) {
+		S3Credential cred;
+		cred.keyid = pcred->keyid;
+		cred.secret = pcred->secret;
 		ret = new S3Fetcher(url, o, cred);
-	} else if (strncmp(url, "s3", 2) == 0 ) {
-		ret = new S3Fetcher(url,o, cred);
+	} else {
+		ret = new HTTPFetcher(url, o);
 	}
+
 	return ret;
 }
+
+
+void* DownloadThreadfunc(void* data) {
+    BlockingBuffer* buffer = (BlockingBuffer*)data;
+    size_t filled_size = 0;
+    void* pp = (void*)pthread_self();
+    // assert offset > 0
+    do {
+        filled_size = buffer->Fill();
+        std::cout<<"Fillsize is "<<filled_size<<" of "<<pp<<std::endl;
+        if(buffer->EndOfFile())
+            break;
+        if (filled_size == -1) { // Error
+            // retry?
+            if(buffer->Error()) {
+                break;
+            } else
+                continue;
+        }
+    } while(1);
+    std::cout<<"quit\n";
+    return NULL;
+}
+
+Downloader::Downloader(uint8_t part_num) 
+	:num(part_num)
+{
+	this->threads = (pthread_t*) malloc(num * sizeof(pthread_t));
+	this->buffers = (BlockingBuffer**) malloc (num * sizeof(BlockingBuffer*));
+}
+
+bool Downloader::init(const char* url, uint64_t size, uint64_t chunksize, S3Credential* pcred) {
+	this->o = new OffsetMgr(size, chunksize);
+	for(int i = 0; i < this->num; i++) {
+		this->buffers[i] = BlockingBuffer::CreateBuffer(url, o, pcred);  // decide buffer according to url
+		if(!this->buffers[i]->Init()) {
+			std::cerr<<"init fail"<<std::endl;
+		}
+		pthread_create(&this->threads[i], NULL, DownloadThreadfunc, this->buffers[i]);
+	}
+	readlen = 0;
+	chunkcount = 0;
+}
+
+bool Downloader::get(char* data, uint64_t& len) {
+	uint64_t filelen = this->o->Size();
+	BlockingBuffer* buf = buffers[this->chunkcount % this->num];
+	uint64_t tmplen = buf->Read(data, len);
+    this->readlen += tmplen;
+	if(tmplen < len) {
+		this->chunkcount++;
+		len = tmplen;
+		if(buf->Error()) {
+			return false;
+		}
+	}
+	if(this->readlen ==  filelen) {
+		if(buf->EndOfFile())
+			return false;
+	}
+	return true;
+}
+
+void Downloader::destroy() {
+	// if error
+	for(int i = 0; i < this->num; i++) {
+		pthread_cancel(this->threads[i]);
+	}
+    for(int i = 0; i < this->num; i++) {
+        pthread_join(this->threads[i],NULL);
+		delete this->buffers[i];
+				
+    }
+	delete this->o;
+}
+
+Downloader::~Downloader() {
+	free(this->threads);
+	free(this->buffers);
+}
+
