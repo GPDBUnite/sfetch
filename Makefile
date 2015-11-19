@@ -2,12 +2,12 @@
 GTEST_DIR=gtest
 
 CPP=g++
-CFLAGS= -g -std=c++11
+CFLAGS= -g -std=c++0x
 INCLUDES = -I. -I/usr/include/libxml2 -Iinclude
 LDFLAGS=-lpthread -lcrypto -lcurl -lxml2
 
-sources = BlockingBuffer.cpp OffsetMgr.cpp URLParser.cpp utils.cpp http_parser.cpp \
-    main.cpp HTTPFetcher.cpp S3Fetcher.cpp HTTPCommon.cpp S3Response.cpp S3Common.cpp
+sources = S3Downloader.cpp  utils.cpp extlib/http_parser.cpp \
+    main.cpp  S3Common.cpp
 testcources = utils_test.cpp OffsetMgr_test.cpp URLParser_test.cpp http_parser.cpp
 
 
@@ -22,7 +22,8 @@ testapp = $(app)_test
 GTEST_SRCS_ = $(GTEST_DIR)/src/*.cc $(GTEST_DIR)/src/*.h $(GTEST_HEADERS)
 
 
-all: build buildtest
+# all: build buildtest
+all: build
 
 $(testobjs) gtest-all.o gtest_main.o: INCLUDES += -I$(GTEST_DIR)/include -I$(GTEST_DIR)/
 
@@ -59,7 +60,7 @@ test: buildtest
 
 
 clean:
-	rm -f *.o $(app) $(testapp) *.a a.out *.orig
+	rm -f *.o $(app) $(testapp) *.a a.out *.orig extlib/*.o
 
 tags:
 	@etags *.cpp *.h
