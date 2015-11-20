@@ -6,12 +6,12 @@
 #include "http_parser.h"
 #include <map>
 #include <string>
-
+using std::string;
 
 
 struct S3Credential {
-    const char* keyid;
-    const char* secret;
+    string keyid;
+    string secret;
 };
 
 
@@ -39,14 +39,14 @@ class HeaderContent
 public:
     HeaderContent() {};
     ~HeaderContent() {};
-    bool Add(HeaderField f, const std::string& value);
+    bool Add(HeaderField f, const string& value);
     struct curl_slist * GetList();
 private:
-    std::map<HeaderField, std::string> fields;
+    std::map<HeaderField, string> fields;
 };
 
 
-bool SignGetV2(HeaderContent* h, const char* path, const S3Credential cred);
+bool SignGetV2(HeaderContent* h, const char* path, const S3Credential& cred);
 
 
 class UrlParser
@@ -75,7 +75,5 @@ private:
 
 const char* GetFieldString(HeaderField f);
 CURL* CreateCurlHandler(const char* path);
-
-
 
 #endif // __S3_COMMON_H__

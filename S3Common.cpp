@@ -13,7 +13,7 @@
 
 using std::stringstream;
 
-bool SignGetV2(HeaderContent* h, const char* path, const S3Credential cred) {
+bool SignGetV2(HeaderContent* h, const char* path, const S3Credential& cred) {
     char timestr[64];
     char line[256];
     gethttpnow(timestr);
@@ -21,7 +21,7 @@ bool SignGetV2(HeaderContent* h, const char* path, const S3Credential cred) {
     h->Add(CONTENTLENGTH, "0");
     stringstream sstr;
     sstr<<"GET\n\n\n"<<timestr<<"\n"<<path;
-    char* tmpbuf = sha1hmac(sstr.str().c_str(), cred.secret);
+    char* tmpbuf = sha1hmac(sstr.str().c_str(), cred.secret.c_str());
     int len  = strlen(tmpbuf);
     char* signature = Base64Encode(tmpbuf, len);
     sstr.clear();

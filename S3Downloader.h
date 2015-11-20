@@ -144,7 +144,7 @@ protected:
 class S3Fetcher : public HTTPFetcher
 {
 public:
-    S3Fetcher(const char* url, OffsetMgr* o,const S3Credential cred);
+    S3Fetcher(const char* url, OffsetMgr* o,const S3Credential& cred);
     ~S3Fetcher() {};
 protected:
     virtual bool processheader();
@@ -187,7 +187,7 @@ private:
 };
 
 // need free
-ListBucketResult*  ListBucket(const char* host, const char* bucket, const char* path, S3Credential &cred);
+ListBucketResult*  ListBucket(const char* host, const char* bucket, const char* path, const S3Credential &cred);
 
 
 

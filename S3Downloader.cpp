@@ -168,10 +168,7 @@ BlockingBuffer* BlockingBuffer::CreateBuffer(const char* url, OffsetMgr* o, S3Cr
         return NULL;
 
     if(pcred) {
-        S3Credential cred;
-        cred.keyid = pcred->keyid;
-        cred.secret = pcred->secret;
-        ret = new S3Fetcher(url, o, cred);
+        ret = new S3Fetcher(url, o, *pcred);
     } else {
         ret = new HTTPFetcher(url, o);
     }
@@ -346,7 +343,7 @@ RETRY:
 }
 
 
-S3Fetcher::S3Fetcher(const char* url, OffsetMgr* o, const S3Credential cred)
+S3Fetcher::S3Fetcher(const char* url, OffsetMgr* o, const S3Credential& cred)
     :HTTPFetcher(url, o)
 {
     this->cred = cred;
@@ -417,7 +414,7 @@ static uint64_t ParserCallback(void *contents, uint64_t size, uint64_t nmemb, vo
 }
 
 // require curl 7.17 higher
-xmlParserCtxtPtr DoGetXML(const char* host, const char* bucket, const char* url, S3Credential &cred) {
+xmlParserCtxtPtr DoGetXML(const char* host, const char* bucket, const char* url, const S3Credential &cred) {
     CURL *curl = curl_easy_init();
 
     if(curl) {
@@ -465,7 +462,7 @@ bool BucketContentComp(BucketContent* a,BucketContent* b)
 
 
 ListBucketResult*
-ListBucket(const char* host, const char* bucket, const char* prefix, S3Credential &cred) {
+ListBucket(const char* host, const char* bucket, const char* prefix, const S3Credential &cred) {
     std::stringstream sstr;
     if(prefix) {
         sstr<<"http://"<<host<<"/"<<bucket<<"?prefix="<<prefix;
