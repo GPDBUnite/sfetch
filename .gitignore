@@ -10,3 +10,8 @@ TAGS
 *.cscope
 *.orig
 core*
+
+GPATH
+GTAGS
+GRTAGS
+doc/*
