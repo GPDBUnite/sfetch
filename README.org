@@ -1,0 +1,3 @@
+*Deprecagted*
+This is a POC project to verify the possibility to save file to/from S3.
+Everything enter another project: https://github.com/GPDBUnite/gps3ext
